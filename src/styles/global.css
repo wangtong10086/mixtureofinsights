@@ -64,6 +64,7 @@ body {
 .section-head { margin: 1.6rem 0 .2rem; }
 .section-head .kicker { font-size: .74rem; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
 .section-head .section-title { font-family: var(--serif); font-weight: 600; font-size: 1.22rem; margin: .15rem 0 0; color: var(--muted); letter-spacing: -.01em; }
+.section-head .section-sub { margin: .35rem 0 0; max-width: 64ch; font-size: .92rem; line-height: 1.55; color: var(--muted); opacity: .82; }
 
 .series-label { font-size: .78rem; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); font-weight: 600; margin-bottom: .3rem; }
 
@@ -112,6 +113,10 @@ body {
   border: 1px solid #20262e;
 }
 .prose pre code { font-family: var(--mono); background: none; padding: 0; }
+
+/* math (KaTeX) — let long display equations scroll instead of overflowing on narrow screens */
+.prose .katex-display { overflow-x: auto; overflow-y: hidden; padding: .35rem 0; }
+.prose .katex { font-size: 1.04em; }
 
 /* tables */
 .prose table { width: 100%; border-collapse: collapse; font-size: .94rem; display: block; overflow-x: auto; }

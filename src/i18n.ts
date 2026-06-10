@@ -53,17 +53,51 @@ export function postUrl(lang: Lang, slug: string) {
   return lang === 'zh' ? `/zh/blog/${slug}/` : `/blog/${slug}/`;
 }
 
-/** series registry — key -> { order on homepage, localized display name } */
-export const series: Record<string, { order: number; en: string; zh: string }> = {
-  'post-training': { order: 1, en: 'Post-Training in Practice', zh: '后训练实战' },
-  'orbit': { order: 2, en: 'ORBIT — orchestrating training on rented GPUs', zh: 'ORBIT —— 在租来的 GPU 上编排训练' },
-  'openvino-tts': { order: 3, en: 'Shipping a TTS model on OpenVINO', zh: '把 TTS 模型搬上 OpenVINO' },
-  'agents': { order: 4, en: 'Agents that touch the real world', zh: '会碰真实世界的 Agent' },
-  'android-hardening': { order: 5, en: 'Hardening a rooted Android device against app detection', zh: '对抗 App 检测:加固一台 root 的安卓设备' },
+/** series registry — key -> { order on homepage, localized display name, one-line blurb } */
+export const series: Record<string, { order: number; en: string; zh: string; blurbEn?: string; blurbZh?: string }> = {
+  'post-training': {
+    order: 1,
+    en: 'Post-Training in Practice',
+    zh: '后训练实战',
+    blurbEn: 'From data engines to GRPO, reward hacking, DPO and self-play — the math for why each method works, and why the data usually outweighs the optimizer.',
+    blurbZh: '从数据引擎到 GRPO、奖励黑客、DPO 与自我博弈 —— 每种方法为何有效的数学,以及为什么数据通常比优化器更重要。',
+  },
+  'orbit': {
+    order: 2,
+    en: 'ORBIT — orchestrating training on rented GPUs',
+    zh: 'ORBIT —— 在租来的 GPU 上编排训练',
+    blurbEn: 'Make a training run a reproducible artifact, not a shell session: a declarative control plane reconciled against a disposable execution plane.',
+    blurbZh: '把一次训练变成可复现的工件,而非一个 shell 会话:用声明式的控制平面去协调一个用完即弃的执行平面。',
+  },
+  'openvino-tts': {
+    order: 3,
+    en: 'Shipping a TTS model on OpenVINO',
+    zh: '把 TTS 模型搬上 OpenVINO',
+    blurbEn: 'Rebuilding the CUDA serving stack — paged-KV, a quantized cache, continuous batching — on an Intel iGPU, derived from the bandwidth math up.',
+    blurbZh: '在一块 Intel 核显上,从带宽的数学出发,亲手重建 CUDA 的服务栈 —— 分页 KV、量化缓存、连续批处理。',
+  },
+  'agents': {
+    order: 4,
+    en: 'Agents that touch the real world',
+    zh: '会碰真实世界的 Agent',
+    blurbEn: 'Eval harnesses, browser and software-engineering trajectories — what it takes to make an agent act on the world and know whether it worked.',
+    blurbZh: '评测框架、浏览器与软件工程轨迹 —— 让一个 Agent 真去作用于世界,并知道它是否成功,需要什么。',
+  },
+  'android-hardening': {
+    order: 5,
+    en: 'Hardening a rooted Android device against app detection',
+    zh: '对抗 App 检测:加固一台 root 的安卓设备',
+    blurbEn: 'How a non-privileged app detects a rooted custom ROM, channel by channel — and the two walls (verified boot, hardware attestation) that userspace cannot move.',
+    blurbZh: '一个非特权 App 逐条通道地如何识别一台 root 的定制 ROM —— 以及用户空间挪不动的两堵墙:验证启动与硬件证明。',
+  },
 };
 export function seriesName(key: string | undefined, lang: Lang): string | undefined {
   if (!key) return undefined;
   return series[key]?.[lang] ?? key;
+}
+export function seriesBlurb(key: string | undefined, lang: Lang): string | undefined {
+  if (!key) return undefined;
+  return lang === 'zh' ? series[key]?.blurbZh : series[key]?.blurbEn;
 }
 export function seriesOrder(key: string): number {
   return series[key]?.order ?? 99;

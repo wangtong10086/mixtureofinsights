@@ -4,7 +4,7 @@ description: "The full map of how a non-privileged app detects a rooted custom R
 date: 2026-06-10
 order: 5
 series: "android-hardening"
-reading: "6 min read"
+reading: "10 min read"
 tags: ["android", "detection", "synthesis", "rasp"]
 ---
 
@@ -14,22 +14,31 @@ in userspace will move.
 
 ## The detection channels, and their fate
 
-| Channel | App reads it via | Closed by | Status |
-|---|---|---|---|
-| Package list | `getInstalledPackages` | HideMyApplist (system_server, by caller) | ✅ |
-| System features | `hasSystemFeature` / `getSystemAvailableFeatures` | per-caller system_server hook | ✅ |
-| Custom permissions | permission enumeration | per-caller system_server hook | ✅ |
-| Build identity | `Build.*` (props) | resetprop + Play Integrity Fix (kept consistent) | ✅ |
-| Boot / verity state | `ro.boot.*` props | resetprop (`green` / `locked` / `enforcing`) | ✅ |
-| Root binaries | `File.exists("/system/bin/su"…)` | Magisk is systemless — nothing to find | ✅ |
-| Process list | enumerate `/proc` | kernel `hidepid=invisible` | ✅ |
-| In-process hooks | `/proc/self/maps` | Shamiko denylist (no Zygisk injection) | ✅ |
-| Magisk mounts | `/proc/self/mountinfo` | Shamiko isolation | ✅ |
-| Custom services | `ServiceManager.getService` | sepolicy `deny … find` | ✅ |
-| Device logs | `READ_LOGS` / logcat | revoke + LogcatManagerService deny | ✅ |
-| Debug settings | `Settings.Global.adb_enabled` | turn off USB debugging | ⚠️ artifact |
-| `/proc` of **isolated** apps | their real cmdline / version | boot-image / kernel edit only | 🧱 wall |
-| Hardware attestation | TEE / KeyMint | nothing — chains to silicon | 🧱 wall |
+The full map: each channel, how a non-privileged app probes it, the countermeasure, and —
+the part that actually matters — *which layer* the fix has to live at. A fix at the wrong
+layer is either detectable (in-app) or ineffective (above the thing it's trying to gate).
+
+| Channel | How a non-privileged app probes it | Countermeasure (artifact) | Layer the fix lives at | Status |
+|---|---|---|---|---|
+| Package list | `PackageManager.getInstalledPackages` (Binder → PMS) | HideMyApplist, filter by caller UID | `system_server` (PMS) | ✅ |
+| System features | `hasSystemFeature` / `getSystemAvailableFeatures` | StockMask `hookFeatures` ([post 2](/blog/02-stockmask/)) | `system_server` (PMS + `IPackageManagerImpl` + `ComputerEngine`) | ✅ |
+| Custom permissions | `getAllPermissionGroups` / permission enumeration | StockMask `hookPermissions` (`PermissionManagerService`) | `system_server` | ✅ |
+| Build identity | `Build.FINGERPRINT` / `SystemProperties.get` | `fuxi_prop_spoof/post-fs-data.sh` — `resetprop` of every `ro.*.build.*`, `--delete` of `ro.lineage.*`; PIF for consistency | property layer (`resetprop`) | ✅ |
+| Boot / verity state (props) | `ro.boot.verifiedbootstate` / `ro.boot.vbmeta.device_state` | same script — `resetprop … device_state locked`, `veritymode enforcing` | property layer | ✅ |
+| Root binaries | `File.exists("/system/bin/su"…)`, `$PATH` scan | Magisk is **systemless** — nothing on the real fs | image/mount layer | ✅ |
+| Process list | enumerate `/proc/<pid>` | kernel `hidepid=invisible` (proc mount option) | kernel | ✅ |
+| In-process hooks | read own `/proc/self/maps` for `zygisk`/`lsposed` | Shamiko denylist — app gets **no Zygisk injection** | injection layer (Zygisk denylist) | ✅ |
+| Magisk mounts | read own `/proc/self/mountinfo` | Shamiko **mount-namespace isolation** | per-app mount namespace | ✅ |
+| `/proc/cmdline` · `/proc/version` (global view) | read the global `/proc/cmdline` for `*-NIGHTLY-*`, `/proc/version` for the build host | `post-fs-data.sh` `sed`-strips the NIGHTLY token + docker build-host, then `mount --bind`s the fakes | global `/proc` (bind-mount) | ✅* |
+| Custom (Lineage) services | `ServiceManager.getService("lineagehardware")` | `fuxi_prop_spoof/sepolicy.rule` — `deny … service_manager find` ([post 4](/blog/04-auditing-from-the-apps-eyes/)) | SELinux (kernel-enforced) | ✅ |
+| Device logs | `READ_LOGS` → `logcat` | `scripts/revoke-readlogs.sh` + StockMask `hookLogAccess` ([post 3](/blog/03-the-logcat-leak/)) | permission + `system_server` + logd/SELinux | ✅ |
+| Debug settings | `Settings.Global.adb_enabled` / `development_settings_enabled` | turn off USB debugging (don't hook `SettingsProvider`) | configuration (user) | ⚠️ artifact |
+| `/proc` of **isolated** apps | own real `cmdline` / `version` from inside the isolated namespace | boot-image / kernel edit only — the bind-mount above can't reach an isolated namespace | kernel / boot image | 🧱 wall |
+| Hardware attestation | KeyStore key with `setAttestationChallenge`, validated server-side ([post 1](/blog/01-the-google-wallet-wall/)) | nothing — the TEE signs the truth | TEE / StrongBox (below the kernel) | 🧱 wall |
+
+<small>*The `/proc` bind-mount reaches the global view and non-isolated apps; a
+Shamiko-isolated app gets a pristine `/proc` the bind-mount can't touch — that's the same
+seam as the first wall below.</small>
 
 ## Three principles that emerged
 
@@ -43,7 +52,24 @@ system is *more* detectable than one coherent stock identity. Every partition fi
 every security-patch date, every prop must tell the same story. The single biggest Wallet
 red herring was a fingerprint that PIF and the system disagreed on.
 
-**3. Know which wall you're at.** There are two you cannot move from userspace.
+**3. Know which wall you're at.** There are two, and both are immovable for the same root
+reason: the trustworthy answer is produced *below* the layer a userspace module can reach.
+
+- **Isolated `/proc`.** Shamiko-style **mount-namespace isolation** is a double-edged tool.
+  Giving a denylisted app its own namespace hides the Magisk bind-mounts — but it does so by
+  giving the app the *clean, real* view, which means the app reads the genuine
+  `/proc/self/cmdline`, `/proc/version`, and `/proc/self/mountinfo`. A module that lives in
+  the app's address space (Zygisk) was deliberately *not* injected into that app — so there
+  is nothing in there to rewrite those files. The only thing that changes what an isolated
+  `/proc` reports is editing the boot image or kernel. Unreachable from a module by
+  construction.
+- **Hardware key attestation.** The TEE (or a discrete StrongBox secure element) signs
+  `verifiedBootState` and `deviceLocked` with a key the OS cannot read, and the chain
+  terminates at a **factory-burned Google attestation root** ([post
+  1](/blog/01-the-google-wallet-wall/)). All of that happens below the kernel; userspace
+  cannot sign as the TEE and cannot make genuine hardware attest `locked` when the bootloader
+  is unlocked. A forged chain satisfies a *local* check but a strict backend (Google Wallet)
+  rejects it.
 
 <figure class="figure">
 <svg viewBox="0 0 720 188" role="img" aria-label="The two walls: isolated /proc and hardware attestation">
@@ -77,7 +103,17 @@ red herring was a fingerprint that PIF and the system disagreed on.
 ## The honest bottom line
 
 You can make a rooted LineageOS device pass the *cheap, common* checks that 95% of apps
-use — package list, features, permissions, props, `/proc`, services, logs. You will not
-beat a determined native RASP that reads its own isolated `/proc`, nor a payment backend
-that validates hardware attestation. Aim your effort at the channels you can actually
-close, document the walls plainly, and don't burn days pretending a wall is a config gap.
+use — package list, features, permissions, props, `/proc`, services, logs. Every ✅ in the
+table above is one small, auditable artifact: a 205-line LSPosed module
+(`code/stockmask/`), a 30-rule `sepolicy.rule`, two shell scripts
+(`post-fs-data.sh`, `revoke-readlogs.sh`), and otherwise stock Magisk/Shamiko. What you
+will *not* beat is a determined native RASP that reads its own isolated `/proc`, or a
+payment backend that validates hardware attestation. Aim your effort at the channels you
+can actually close, document the walls plainly, and don't burn days pretending a wall is a
+config gap.
+
+## Further reading
+
+- [Android key attestation](https://developer.android.com/privacy-and-security/security-key-attestation) — the cert chain, the attestation extension OID, and the `verifiedBootState` / `deviceLocked` fields the TEE signs.
+- [Android Verified Boot (AVB)](https://source.android.com/docs/security/features/verifiedboot) — where the boot state the TEE attests to is actually computed and locked.
+- [SELinux for Android](https://source.android.com/docs/security/features/selinux) — the kernel-enforced layer behind the service-discovery and logd walls.

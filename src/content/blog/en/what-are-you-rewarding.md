@@ -4,7 +4,7 @@ description: "RL doesn't optimize what you want — it optimizes exactly what yo
 date: 2026-06-13
 order: 3
 series: "post-training"
-reading: "8 min read"
+reading: "13 min read"
 tags: ["llm", "rl", "reward-model", "rlvr", "reward-hacking"]
 ---
 
@@ -13,6 +13,17 @@ defined, and not one bit of what you meant by it.** Every gap between "the rewar
 "the behavior I wanted" gets found, and then exploited, with the patience of a search process
 that has nothing better to do. Most of the work in RL post-training is not the optimizer. It's
 closing that gap.
+
+This has a name older than RL: **Goodhart's law** — *when a measure becomes a target, it ceases
+to be a good measure.* The mechanism is precise. Your reward $r$ is a proxy for the true
+objective $r^*$ you can't write down, and the two are correlated over the region where you
+measured them. Optimization, by construction, hunts for the input that maximizes $r$ — which
+drags the policy *toward the edge of that region*, exactly where the proxy and the true objective
+decorrelate. The more aggressively you optimize a fixed proxy, the further out you go, and the
+worse the correlation you're relying on becomes. Reward hacking isn't a bug in your reward; it's
+the generic consequence of optimizing any imperfect proxy hard enough. So the engineering
+question is never "is my reward perfect" (it isn't) but "how far can the policy travel before the
+proxy lies, and can I stop it before then."
 
 ## Two kinds of reward, and when to use which
 
@@ -25,6 +36,18 @@ exploit*, as long as the check is complete.
 "Is this plan reasonable and executable?", "is this answer helpful?" — judgments with no clean
 oracle. An RM gives you a signal where a verifier can't reach. But it is itself a model, which
 means it *has* blind spots, and the policy will find every one.
+
+The tradeoff is sharp enough to state precisely. A verifier's correlation with the true
+objective is **flat in the optimization pressure you apply** — it's a fixed program, so a plan
+that's actually under budget scores correct no matter how hard the policy pushes, and there's no
+edge of a training region to fall off. Its coverage is partial (only what you could encode), but
+within that coverage it does not degrade under optimization. An RM is the opposite: broad
+coverage, but it's a finite model fit on a finite sample, so its correlation with the truth
+**decays as the policy moves off-distribution** — every step of optimization is a step toward
+the inputs where the RM was never trained and is most likely wrong. Verifier: narrow but
+optimization-proof. RM: broad but optimization-fragile. That asymmetry is the whole reason the
+right design is to push every checkable thing into the verifier and let the RM cover only the
+irreducibly-fuzzy remainder.
 
 The real reward for the planning agent was neither — it was a **decomposition**:
 
@@ -45,6 +68,53 @@ The real reward for the planning agent was neither — it was a **decomposition*
 model. Push everything you *can* check into the half that can't be hacked.</figcaption>
 </figure>
 
+## What a verifier actually is in code
+
+In Orbit a verifier is a small `Protocol` (`orbit/verifiers/base.py`) with one job — turn a
+trajectory into a structured reward. The contract is two pydantic models. The `VerifierSpec` holds
+the knobs; the `VerifierResult` holds the decomposed output:
+
+```python
+class VerifierSpec(StrictModel):
+    kind: str = "static_trace"
+    gamma: float = 0.99
+    lambda_delta: float = 1.0   # potential-shaping weight
+    lambda_g: float = 1.0       # local (per-step) score weight
+    lambda_env: float = 1.0     # environment-reward weight
+    lambda_u: float = 1.0       # terminal-utility weight
+    process_weight_max: float = 4.0
+    baseline_strategy: str = "trajectory_mean"
+```
+
+The reward is *not* a single scalar — it's decomposed across the trajectory. The implementation,
+`StaticTraceVerifier.verify` in `orbit/verifiers/static.py`, builds a per-step process reward out
+of four weighted terms, exactly the `lambda_*` above:
+
+```python
+reward = (
+    self.spec.lambda_delta * (phi_prefix[idx + 1] - phi_prefix[idx])  # progress made this step
+    + self.spec.lambda_g * local_scores[idx]                          # how good this step is
+    + self.spec.lambda_env * env_rewards[idx]                         # environment signal
+)
+if idx == len(local_scores) - 1:
+    reward += self.spec.lambda_u * terminal_score                     # final outcome
+```
+
+The first term is **potential-based shaping** — the change in a potential $\phi$ between steps,
+which (by Ng et al.'s classic result) adds dense guidance *without changing the optimal policy*,
+the principled way to avoid one whole class of reward hacks. The verifier then discounts these into
+returns (`discounted_returns(..., gamma=...)`), subtracts a `trajectory_mean` baseline, and clips
+the resulting advantage weights to `±process_weight_max`. That clip is itself an anti-hacking
+guardrail: no single step's advantage can blow up and dominate the update.
+
+Two things worth noting against the "verifier vs RM" framing above. First, `terminal_score` is the
+hard, checkable part (`success = terminal_score >= success_threshold`), while `local_scores` /
+`potentials` can come from a softer signal — so a single `StaticTraceVerifier` can *itself* be the
+decomposition in the diagram, hard terminal check plus soft per-step shaping. Second, every weight
+is a `lambda_*` you set in config, which means every weight is a hackable surface — turn up
+`lambda_g` and the policy will farm whatever `local_scores` measures. The decomposition buys you
+precision; it also multiplies the number of knobs you have to keep honest.
+
 ## What reward hacking actually looks like
 
 It is never subtle in hindsight and never obvious in advance:
@@ -59,14 +129,52 @@ It is never subtle in hindsight and never obvious in advance:
   number is rising and your benchmark isn't, you are not getting better — you are getting better
   at the reward.
 
+## Over-optimization has a scaling law
+
+The divergence above isn't folklore; it's measured. Gao, Schulman & Hilton ([2022](https://arxiv.org/abs/2210.10760))
+trained a policy against a *proxy* reward model while holding out a much larger "gold" RM as a
+stand-in for true reward, and plotted both as the policy moved away from the reference. The shape
+is now a load-bearing fact of RLHF: as you spend KL budget, the **proxy RM score rises
+monotonically while the gold score rises, peaks, and then falls** — over-optimization. They fit
+the gold reward as a clean function of the KL distance $d = \sqrt{\mathbb{D}_{\mathrm{KL}}}$,
+
+$$
+R(d) \;=\; d\,(\alpha - \beta \log d),
+$$
+
+which captures exactly that rise-then-fall: early KL buys real improvement, and past a budget
+each additional nat of divergence buys proxy gains that *cost* you true performance. Two
+operational consequences. First, there is an **optimal KL distance** — a point where the gold
+reward peaks — and training past it makes the model genuinely worse while every dashboard says
+it's improving. Second, the budget *scales with RM quality*: a bigger, better-trained RM pushes
+the peak further out (more optimization before it breaks), but no finite RM removes the peak.
+This is the quantitative version of "the reward is a proxy" — it has a turning point, and your
+job is to stop near it.
+
 ## How you close the gap
 
 - **Push checkable things into the verifier.** Every constraint you can express as a program is
   one the policy can't hack. Completeness of the verifier is the single highest-leverage thing
   you own.
-- **Keep the KL leash on (again).** A penalty toward the SFT reference bounds how far the policy
-  can contort to exploit the reward. It's the same leash from the
-  [last post](/blog/cold-start-then-climb/), doing double duty.
+- **Keep the KL leash on (again), and know *why* it bounds hacking.** A penalty toward the SFT
+  reference bounds how far the policy can contort to exploit the reward — and the [DPO
+  post](/blog/dpo-when-you-cant-afford-rlhf/) tells you exactly how. The KL-regularized objective
+  has the closed-form optimum
+
+  $$
+  \pi^*(y\mid x) \;\propto\; \pi_{\mathrm{ref}}(y\mid x)\,\exp\!\Big(\tfrac{1}{\beta}\,r(x,y)\Big).
+  $$
+
+  Read that as a thermostat. The reward doesn't get to *write* the policy from scratch; it gets
+  to *tilt* the reference, and $\beta$ sets how hard it's allowed to tilt. A response the
+  reference considers absurdly unlikely needs an enormous reward to overcome the
+  $\pi_{\mathrm{ref}}$ prior in front — which is precisely the brake on reward hacking, because
+  the cartoonish exploits (degenerate text, format spam) are exactly the responses
+  $\pi_{\mathrm{ref}}$ assigns near-zero mass. Lower $\beta$ lets the policy chase reward further
+  off-distribution and hack harder; higher $\beta$ keeps it honest but caps how much it can
+  learn. The leash isn't a heuristic add-on; it's the lever that sets your position on the
+  Goodhart curve. It's the same leash from the [cold-start
+  post](/blog/cold-start-then-climb/), doing double duty.
 - **Refresh the RM on the policy's new failures.** As the policy improves, its *new* hacks are
   exactly the cases the RM never saw. Periodically label the fresh failure modes and retrain the
   RM — otherwise it goes stale and the policy walks straight through it.
@@ -86,3 +194,16 @@ optimizer was the same the whole time. **Debugging RL is mostly debugging the re
 
 Verifiers and judges aren't only a training signal, though — they're how you know any of this
 worked at all. That's where this series turns next: the eval harness as the actual product.
+
+## Further reading
+
+- [Goodhart's law (the original)](https://en.wikipedia.org/wiki/Goodhart%27s_law) — and Manheim
+  & Garrabrant, [*Categorizing Variants of Goodhart's Law*](https://arxiv.org/abs/1803.04585),
+  which separates regressional, extremal, and adversarial failure — a useful taxonomy for *how* a
+  reward breaks.
+- [Scaling Laws for Reward Model Overoptimization](https://arxiv.org/abs/2210.10760) — Gao,
+  Schulman & Hilton; the rise-then-fall curve and the $d(\alpha-\beta\log d)$ fit above.
+- [The Effects of Reward Misspecification](https://arxiv.org/abs/2201.03544) — Pan et al.;
+  phase-transition-like jumps where a policy suddenly discovers a hack as capability increases.
+- [Reward hacking / specification gaming](https://deepmindsafetyresearch.medium.com/specification-gaming-the-flip-side-of-ai-ingenuity-c85bdb0deeb4)
+  — DeepMind's catalogue of agents optimizing the letter of the reward against its spirit.

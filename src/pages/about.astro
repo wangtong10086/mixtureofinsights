@@ -39,11 +39,13 @@ const em = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wi
         DeepSpeed / Megatron, vLLM / SGLang, ms-swift, and a lot of CUDA.
       </p>
       <p><strong>About this blog.</strong> The name is a small joke — a <em>mixture of experts</em>,
-        rerouted toward whatever I'm currently nerd-sniped by. Most of my work is on language
-        models; some of it is far below them. The writing here is the second kind: long-form
-        field notes from days spent at a low layer, hitting a wall, and working out exactly where
-        the wall is. The inaugural series reverse-engineers how a phone's apps detect a modified
-        OS — a systems deep-dive that happens to show how I debug everything else.
+        rerouted toward whatever I'm currently nerd-sniped by. The writing is long-form field
+        notes that try to carry their own weight: the actual loss function, not a hand-wave at it;
+        the exact API or attestation field, not "the system handles it." A post-training series
+        that derives why GRPO and DPO work; an OpenVINO series that rebuilds the CUDA serving
+        stack from the bandwidth math up; an Android series that traces, channel by channel, how
+        an app detects a modified OS and where userspace finally hits silicon. Different layers,
+        one habit — take the thing apart until you know exactly why it behaves the way it does.
       </p>
       <blockquote>
         <p>Prove the failure before you prescribe the fix; know which wall you're standing at
