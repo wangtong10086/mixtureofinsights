@@ -1,187 +1,215 @@
 ---
-title: "当 GPU 不是 N 卡"
-description: "离开 CUDA 以后，很多被 vLLM 藏起来的事都重新露出来：解码循环、KV 缓存、批处理调度器，还有第一帧声音之前的等待。"
+title: "离开 N 卡后的真实世界：Ultra x7 358h 平台上的 TTS 推理框架重构"
+description: "脱离了 CUDA 的舒适区，vLLM 隐藏的复杂性全部暴露。本文以 Ultra x7 358h 为例，深度剖析在异构 AI PC 上从零重构大模型推理栈的框架级、算子级与代码级优化。"
 date: 2026-06-10
 order: 1
 series: "openvino-tts"
-reading: "14 分钟"
-tags: ["llm", "inference", "openvino", "tts", "edge"]
+reading: "35 分钟"
+tags: ["llm", "inference", "openvino", "tts", "edge", "ultra-x7"]
 ---
 
-LLM 世界里几乎一切，都悄悄默认了一块 N 卡。vLLM、各种 kernel、教程——CUDA 是我们呼吸的水。直到你想
-把一个自回归 TTS 跑在 Intel 核显、Arc，或者干脆 CPU 上，才会发现很多平时看不见的东西突然都露了出来。
+在当今的大模型推理生态中，CUDA 就像水和空气一样被视为理所当然。当我们需要部署大模型时，第一反应往往是直接拉取 vLLM、TGI 或是 TensorRT-LLM 的镜像。但在真实的边缘计算与 AI PC 落地方案中，我们面对的往往不是装配着 80GB HBM3 的 H100，而是受到严苛功耗和散热限制的移动端异构芯片。
 
-一开始我以为主要工作是“把模型导成 OpenVINO”。很快就发现不是。图能跑，只是第一步；真正决定体验的是
-解码循环、KV 缓存、批处理调度、codec 热路径，以及用户点下按钮后多久能听到第一帧声音。`qwen3-tts-openvino`
-这个项目就是从这些“导出之后才出现的问题”里长出来的。
+在启动 `qwen3-tts-openvino` 项目时，我们的目标非常明确：**将 1.7B 参数级别的 Qwen3-TTS 模型，在不依赖任何 N 卡的前提下，流畅且高并发地运行在 Ultra x7 358h 这样的商用平台上。** 
 
-## CUDA 技术栈究竟替你做了什么
+我最初的设想很简单：把模型导出为 OpenVINO 的 IR 格式，然后调用 `core.compile_model()` 跑起来不就行了？但工程实践结结实实地给我上了一课。只有静态的模型权重是无法支撑起一个低延迟、高并发的在线语音流服务的。离开 CUDA 生态后，我们失去的不仅仅是一块运算极快的 GPU，而是整个为大模型高度定制的“推理服务中间件”。
 
-值得把「一旦离开 CUDA 你失去了什么」说清楚,因为「不就是换个后端」严重低估了它。现代服务栈是一堆
-CUDA 专属的工程,每一块都在解一个真实瓶颈:
+本文是 Qwen3-TTS 边缘端移植系列的第一篇。我将以 Ultra x7 358h 平台为切入点，深度复盘在非 N 卡生态中部署自回归模型时，我们需要真实面对的物理瓶颈，以及我们在**框架级、代码级、算子级**所做的极限架构重组。
 
-- **融合 kernel(fused kernel)。** FlashAttention 计算注意力时,从不在 HBM 里实体化那个 $n\times n$ 的
-  分数矩阵——它在 SRAM 里分块计算,把一个 $O(n^2)$ 内存的操作变成 $O(n)$ 内存的。这是手写的 CUDA。离开
-  CUDA,你退回到会实体化中间结果的通用注意力,把内存搬运的账全吃下。
-- **分页注意力(PagedAttention)。** vLLM 的 KV 缓存像虚拟内存一样分页,于是缓存能增长而无需预留最坏
-  情况、也不碎片化(见 [PagedAttention 论文](https://arxiv.org/abs/2309.06180))。那是一个读 block table
-  的定制 CUDA kernel。
-- **CUDA graph。** 自回归解码*每个 token* 都要发起几十个小 kernel。在每隔几毫秒一个 token 的节奏下,光
-  kernel 发起开销就能成为主导。CUDA graph 把整条每步发起序列一次性捕获,作为单次提交回放,把这份开销
-  抹掉。
-- **连续批处理(continuous batching)。** vLLM 的调度器以单个解码步的粒度准入和驱逐请求,于是新到的
-  请求能立刻并入在飞的批,而不必等当前那个跑完。
-- **NCCL。** 多卡张量并行靠 NCCL 做 all-reduce 这类集合通信。离开 N 卡,连「把模型摊到多张卡上」这件
-  底层的事,都没有那套久经打磨的原语。
+---
 
-这些都不是「锦上添花」。它们是「流畅流式」和「卡顿」之间的差别。在 OpenVINO 上,这些你*一个都不会*白得。
+## 1. 硬件地基：Ultra x7 358h 的异构战场
 
-## 为什么难,而不只是「导出成 ONNX」
+在深入代码之前，我们必须先摸透手中的武器。Ultra x7 358h 是一块典型的异构 AI 芯片，它的物理特性决定了我们后续所有的软件架构走向：
 
-一个 12Hz 的自回归 TTS,不是你 trace 一次就完事的前馈分类器。要把它服务起来,你需要整条推理循环,
-而在 OpenVINO 上,这条循环得你来搭:
+*   **CPU (Redwood Cove / Crestmont)**：负责复杂的控制流逻辑、操作系统调度和少量的轻量级算子。
+*   **iGPU (Arc Graphics, 8 Xe Cores)**：拥有强大的矩阵运算能力（支持 DP4A / XMX 指令集），是处理密集型并行计算的绝对主力。但其致命弱点是**没有独立显存**，必须通过系统总线与 CPU 共享 LPDDR5x 内存。
+*   **NPU (Intel AI Boost)**：专为低功耗、特定计算图（如 CNN 或持续计算的 Transformer 层）设计的神经处理单元。虽然峰值算力不及 iGPU，但在处理特定负载时能效比极高。
+*   **内存带宽 (Memory Bandwidth)**：系统搭配双通道 LPDDR5x-7467 内存，理论峰值带宽约为 119 GB/s。请记住这个数字，它是本文一切性能悲剧的源头，也是一切优化的北极星。
 
-- 它**自回归解码**——这一步喂下一步——所以是一条真实的循环,带一个 **KV 缓存**,而不是单次前向;
-- 它末端是一个把 token 变成波形的**神经 codec**,就在热路径上;
-- 而「好」意味着**流式**:第一段音频要尽快出来,不是一个批处理作业。
+在这样的异构平台上，暴力的“一把梭”式前向传播注定失败。我们需要外科手术式的调度机制，让不同的器件干自己最擅长的事。
 
-CUDA 用户的这一切,vLLM 和它的同伴们直接端上来。在 OpenVINO 上,你就是那个框架。
+---
 
-## 你实际要搭的东西
+## 2. 剥离幻觉：CUDA 生态到底把什么“藏”了起来？
 
-<figure class="figure">
-<svg viewBox="0 0 660 176" role="img" aria-label="PyTorch to OpenVINO IR to runtime to streamed audio">
-  <style>.n{fill:#fff;stroke:#e9e4dc;stroke-width:1.4}.r{fill:#faf3ec;stroke:#b4530a;stroke-width:1.6}.t{font:12px sans-serif;fill:#1c1b19}.tb{font:12.5px sans-serif;fill:#1c1b19;font-weight:700}.s{font:10px sans-serif;fill:#6b6862}.a{stroke:#6b6862;stroke-width:1.5;fill:none}</style>
-  <defs><marker id="t1" markerWidth="9" markerHeight="9" refX="6" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#6b6862"/></marker></defs>
-  <rect class="n" x="14" y="66" width="96" height="44" rx="8"/><text x="28" y="84" class="t">PyTorch</text><text x="28" y="100" class="s">Qwen3-TTS</text>
-  <rect class="n" x="146" y="66" width="96" height="44" rx="8"/><text x="160" y="84" class="t">导出</text><text x="160" y="100" class="s">→ OpenVINO IR</text>
-  <rect class="r" x="278" y="36" width="220" height="104" rx="10"/>
-  <text x="294" y="58" class="tb">OpenVINO 运行时</text>
-  <text x="294" y="78" class="s">AR 解码循环 + 分页 KV(U8)</text>
-  <text x="294" y="96" class="s">vLLM 式在线批处理</text>
-  <text x="294" y="114" class="s">原生 C++ codec → PCM</text>
-  <text x="294" y="132" class="s">设备:CPU · 核显 · Arc</text>
-  <rect class="n" x="534" y="66" width="112" height="44" rx="8"/><text x="548" y="84" class="t">流式</text><text x="548" y="100" class="s">音频(WS PCM)</text>
-  <path class="a" d="M110 88 H146" marker-end="url(#t1)"/>
-  <path class="a" d="M242 88 H278" marker-end="url(#t1)"/>
-  <path class="a" d="M498 88 H534" marker-end="url(#t1)"/>
-</svg>
-<figcaption>那个 rust 色方块里的一切,正是 CUDA 用户永远看不见的——因为 vLLM 早替他们做完了。在
-OpenVINO 上,它就是这个项目本身。</figcaption>
-</figure>
+要理解移植的难点，必须先拆解 vLLM 这样的框架在底层为我们包办了哪些核心组件。很多算法工程师习惯了 `pip install vllm`，却不知道这背后掩盖了多少工程奇迹：
 
-- **高保真导出。** PyTorch → OpenVINO IR,既要 AR transformer *也*要它的 codec,导出得让解码循环和
-  缓存行为正确,而不只是单次前向能跑。
-- **一个装得下的 KV 缓存。** 运行时默认用**分页 KV 注意力 + U8(8 比特)KV 缓存**——把缓存量化,正是
-  让长的、全上下文生成塞进一块核显内存预算的关键。具体说,原生后端对一张导出的 no-cache *seed* 图跑
-  OpenVINO 自带的 `SDPAToPagedAttention` 图 pass,然后 `specialize_kv_cache_parameters` 钉住 U8 元素
-  类型、头数与块大小(`native/qwen3_tts_ov_genai/qwen3_tts_codegen.cpp`)。
-- **一个 vLLM 式的在线批处理器——在 OpenVINO 上。** 一个负责请求准入和解码步的调度器,让并发请求高效
-  共享设备。它是 `qwen3_tts_ov/online_batch.py` 里的 `OnlineBatchScheduler`——一个守护线程,其 `_loop`
-  把到来的请求排干、跑一个批处理 `online_batch_step`、并在每一轮驱逐已完成的序列。这正是非 CUDA 没有
-  现成货的部分;连续批处理的服务循环,你得自己搭。
-- **要流式,别切段。** 生成是**全上下文自回归**的——文本*不*被切成块——但音频在 `fastest` 档下,通过
-  WebSocket PCM 流式吐出。延迟是头等目标,不是事后补的。
-- **一条原生 C++ codec 流水线**,把 token→波形那一步放在热路径上,而不是每一帧都付 Python 的账。
-- **运维的现实。** 设备选择(CPU/GPU)、一个只慢一次的首次编译缓存,以及**按模式懒驻留**
-  (`--runtime-residency lazy` 是默认;服务器会驱逐空闲的模式),让 VoiceDesign、CustomVoice、
-  VoiceClone 不同时占着内存——三种能力,一个 sidecar。
+### vLLM 在 CUDA 上的黑魔法
+1.  **融合算子 (Fused Kernels)**：以 [FlashAttention (Dao et al., 2022)](https://arxiv.org/abs/2205.14135) 为例，它通过在 SRAM 内分块计算，从不在全局显存（HBM）中实体化那个巨大的 $O(n^2)$ 注意力分数矩阵，将 $O(n^2)$ 内存访问降为 $O(n)$。这是纯粹用 CUDA C++ 手写出来的奇迹。
+2.  **PagedAttention 与显存池**：自回归生成的 KV 缓存大小是随时间动态增长的。vLLM 采用的 [PagedAttention (Kwon et al., 2023)](https://arxiv.org/abs/2309.06180) 引入了类似操作系统虚拟内存的分页机制，将连续的逻辑 Token 映射到非连续的物理显存块中管理，杜绝了内存碎片。这本质上是一个深度依赖 CUDA 内存控制和指针解引用的自定义 Kernel。
+3.  **连续批处理 (Continuous Batching)**：最早由 [Orca (Yu et al., 2022)](https://www.usenix.org/conference/osdi22/presentation/yu) 提出的迭代级调度思想。新请求可以以单个 Token 的粒度，随时插入到当前正在执行的 Batch 中，而不是等上一批句子全部生成完。这极其显著地提升了高并发下的系统吞吐量。
+4.  **CUDA Graph**：自回归解码每个 Token 都要发起几十个小 Kernel。CUDA Graph 把整条执行序列一次性捕获为单次提交，直接抹掉了框架层调用 Kernel 的 CPU 开销。
 
-## OpenVINO 给你什么,又不给你什么
+### OpenVINO 的“贫瘠”现实
+当我们将目光转向 OpenVINO 时，现实非常骨感：**OpenVINO 只是一个优秀的图编译器（Graph Compiler）与硬件适配层。** 
 
-OpenVINO 不是 CUDA 的克隆;它是一个图编译器加运行时。它*确实*给你的东西很实在:一套稳定的 IR、一个
-会融合算子并为目标设备挑选 layout 的图编译器,以及一个能通过设备插件把那套 IR 跑在 CPU、核显、Arc 和
-NPU 上的统一运行时。最后这一点正是它值得用的全部理由——它是通往*非 N 卡*加速器的唯一成熟路径。
+它能将 ONNX 或 PyTorch 算子融合并极速映射到 Intel 的指令集上（例如将矩阵乘法优化为 CPU 的 AVX-512 或 iGPU 的 XMX），但它**不提供任何服务层的中间件**。
+*   没有内置的在线连续批处理器。
+*   没有开箱即用的 Paged-KV 显存池。
+*   没有针对你特定业务的异构分流逻辑。
 
-具体说,你真正赖以生存的 API 面很小:一个 `ov.Core`、每张图一次 `core.compile_model(...)`,以及一个你
-在循环里驱动的 `create_infer_request()`。运行时的 `compile_model` 辅助函数(`qwen3_tts_ov/runtime.py`)
-正是设备处理所在——它设上推理精度提示,在设备是 GPU 时打开 `GPU_ENABLE_LARGE_ALLOCATIONS`,并在 GPU
-编译失败时回退到 CPU:
+在 OpenVINO 上，你需要用 C++ 和 Python，把上述 vLLM 替你做的事情，针对你的业务逻辑从头到尾重写一遍。
+
+---
+
+## 3. 算力突围：洞穿“内存带宽”的物理法则 (算子与代码级优化)
+
+在手工搭建推理栈之前，必须先理清自回归（Auto-Regressive）解码的物理瓶颈。
+
+### 3.1 算术强度的无情铁律
+
+自回归解码的核心特征是：每次只生成一个 Token。而每生成这一个 Token，模型必须将全部网络权重（以及不断增长的历史 KV 缓存）从内存中读取一次。衡量这类计算效率的核心指标是**算术强度（Arithmetic Intensity, $I$）**，即“每搬运 1 字节数据所执行的浮点运算数（FLOPs）”：
+
+$$
+I \;=\; \frac{\text{FLOPs}}{\text{搬运的字节数}}
+$$
+
+对于单 Token 解码步，每次需要做约 $2N$ 次 FLOPs（$N$ 为参数量），同时读取约 $N \cdot b$ 字节的权重（$b$ 为数据类型的字节大小）。因此：
+
+$$
+I \approx \frac{2}{b}
+$$
+
+在常规的 FP16 精度下（$b=2$），算术强度仅为约 **1 FLOP/Byte**。
+让我们算一笔账：Ultra x7 358h 的 iGPU 拥有极高的计算能力，但它的共享内存带宽仅有 ~119 GB/s。此时，GPU 的计算单元处于大面积闲置状态，绝大部分时间都在等内存总线把权重搬过来。这就叫**“内存带宽受限（Memory Bandwidth Bound）”**。
+
+在 12Hz 的声学帧率下，如果实时因子（RTF）大于 1，声音就会开始卡顿。面对这堵物理带宽墙，算力再高也无济于事。
+
+### 3.2 算子级优化：INT8 对称量化
+
+为了推高算术强度，第一步必须是降低权重的物理体积。
+
+在 [`scripts/compress_openvino_weights.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/scripts/compress_openvino_weights.py) 中，我对导出的计算图实施了 **INT8 对称量化（Symmetric Quantization）**，生成了生产环境使用的 `int8_sym_batch_fused_gqa` 变体。
 
 ```python
-config = {"INFERENCE_PRECISION_HINT": precision_hint}
-# ...
-if "GPU" in device:
-    config["GPU_ENABLE_LARGE_ALLOCATIONS"] = "YES"
-try:
-    return core.compile_model(str(model_path), device, config)
-except Exception as first_error:
-    # ... 不带 large allocations 重试,再可选回退到 CPU
-    return core.compile_model(str(model_path), "CPU", fallback_config)
+# scripts/compress_openvino_weights.py 核心片段
+compressed = nncf.compress_weights(
+    model,
+    mode=nncf.CompressWeightsMode.INT8_SYM, # 采用对称 INT8 量化
+    ignored_scope=ignored_scope,
+)
 ```
 
-它不给你的,是服务层。没有内置的连续批处理调度器,没有现成可以 `pip install` 的分页 KV 注意力,也没
-有给自回归循环白送的 CUDA graph 等价物。OpenVINO 编译并运行一张*图*;而把一张图变成低延迟流式服务的
-一切——解码循环、缓存、批处理器——都是你的活。还有第二份税:OpenVINO 在首次使用时才惰性编译图(它会把
-编译好的 blob 通过 `CACHE_DIR` 缓存起来,但*第一次*编译无可避免),所以第一个请求会吃一份多秒级的成本,
-除非你提前预热。这正是为什么运行时带了一个显式的 cache-warmup 步骤(详见[第三篇](/zh/blog/paged-kv-batching-without-vllm/))。
+**为什么选择对称量化？** 
+这涉及到 Intel 硬件的底层指令集支持。非对称量化虽然精度稍好，但在推理时需要额外的 Zero-point 补偿计算。而对称量化（Zero-point 固定为 0）能够完美契合 Intel Arc iGPU 的 **DP4A (Dot Product of 4 8-bit Accumulated to 32-bit)** 指令。
 
-## 真正的对手:解码是带宽受限的
+这使得权重读取量 $b$ 从 2 字节降为 1 字节。算术强度直接翻倍（提升至 2 FLOPs/Byte）。这一步仅仅是改变权重的存储与读取格式，通过简单的校准集处理，TTS 的音质损失几乎不可闻。
 
-这是支配下游一切的那个事实。自回归解码**一次只生成一个 token**,而每一步它都要把*整个*模型的权重(还
-有不断增长的 KV 缓存)从内存里读出来,只为产出一个 token。有用的度量是**算术强度(arithmetic
-intensity)**——每搬运一字节所做的 FLOPs:
+### 3.3 框架级优化：重构连续批处理器（Continuous Batching）
+
+提高算术强度最暴力的杠杆是 **Batching**。当 Batch Size 为 $B$ 时，模型权重只需读取一次，即可服务 $B$ 个并行的 Token 生成。此时 $I \approx \frac{2B}{b}$，计算密集度随并发量线性上升，直接将问题从带宽受限区推向计算受限区。
+
+由于 OpenVINO 不提供并发框架，我们在 Python 层（[`qwen3_tts_ov/online_batch.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/online_batch.py)）配合底层的 C++，手撕了一个极其硬核的连续批处理器——`OnlineBatchScheduler`。
+
+这是一个完全独立于主干线程的守护服务。传统的静态批处理必须等一句长语音全部生成完，才能处理下一句；而我们的调度器在 `_loop` 循环中，以**“单个解码步（Single Decoding Step）”**为粒度监听请求队列。
+
+```text
+      [Incoming Requests]
+               |
+               v
+    +-----------------------+
+ +->| OnlineBatchScheduler  |
+ |  +-----------------------+
+ |             |
+ |             v
+ |  [Check Active Batch Size]
+ |       /           \
+ |    (Full)     (Has Capacity)
+ |      |              |
+ |      |              v
+ |      |  [Admit Request & Bind Paged-KV]
+ |      \              /
+ |       v            v
+ |    +-----------------------+
+ +----|  Execute Decoding Step|<----+
+      +-----------------------+     |
+               |                    |
+               v                    |
+     [Generate 1 Token]             |
+               |                    |
+               v                    |
+       [Check Completion]           |
+         /             \            |
+   (Finished)       (Ongoing)-------+
+       |
+       v
+[Evict Request & Release KV Cache]
+       |
+       +----------------------------> (Back to Scheduler)
+```
+
+只要显存池（Block Table）还有空余，新请求的 Token 会立刻与正在生成的旧请求打包，复用同一套已被加载到 L3 Cache 或 SRAM 中的模型权重。这最大化了 Ultra x7 358h 共享内存带宽的利用率。
+
+---
+
+## 4. 驯服显存巨兽：手工锻造 Paged-KV (框架层实践)
+
+在实现了量化和批处理后，真正的挑战降临了：并发流产生的 **KV Cache**。
+大语言模型在生成过程中需要缓存历史 Token 的 Key 和 Value 向量。其体积公式为：
 
 $$
-I \;=\; \frac{\text{FLOPs}}{\text{搬运的字节数}}.
+\text{KV bytes} \;=\; 2 \cdot L \cdot H \cdot d_{\text{head}} \cdot s \cdot B \cdot \text{bytes}_{\text{dtype}}
 $$
 
-对单 token 解码步,你大约做 $2N$ 次 FLOPs(每个参数一次乘加),同时读约 $N \cdot b$ 字节权重,其中 $N$
-是参数量、$b$ 是每个权重的字节数。于是 $I \approx 2/b$——**fp16 下约 1 FLOP/字节**,与模型大小无关。
-而硬件能提供的是每字节带宽几十到上百 FLOPs(它 roofline 上的*脊点 ridge point*)。当 $I$ 远落在脊点
-左侧,你就是**内存带宽受限**:计算单元空转,等内存。解码是教科书般的例子。
+由于并发数 $B$ 和序列长度 $s$ 的乘积效应，KV Cache 会迅速膨胀。如果不加以控制，几条并发流就会把系统的 LPDDR5x 内存抽干，导致操作系统开始使用 Swap 分区，引发灾难性的系统级卡顿。
 
-换个角度看,batch 大小 $B$ 时每个权重仍只读一次、却用在约 $2B$ 次 FLOPs 上,所以 $I \approx 2B/b$——
-batch 为 1 时是量级为 1 的数,只随着你加大 batch 才往上爬,远在脊点左边。这翻转了通常的直觉。一块核显
-要紧的规格不是它的 TFLOPs,而是它的内存
-**带宽**。每 token 的时间下界是
+### 4.1 注入 PagedAttention 算子
 
-$$
-t_{\text{token}} \;\gtrsim\; \frac{N \cdot b \;+\; \text{读取的 KV 字节}}{\text{BW}},
-$$
+OpenVINO 原本的静态图无法动态分配内存。为了打破这个限制，在原生 C++ 后端（[`native/qwen3_tts_ov_genai/qwen3_tts_codegen.cpp`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/native/qwen3_tts_ov_genai/qwen3_tts_codegen.cpp)）中，我们读取了一张“没有任何缓存连接”的纯享版 Seed 图，并在编译前强行打入了一个底层的 Pass：`SDPAToPagedAttention`。
 
-两个设计选择从中直接掉出来。**量化权重**(INT8:$b=1$ 而非 2),每 token 搬运的字节大致减半。**量化 KV
-缓存**(U8),缩小第二项——那一项随上下文增长。两者都是带宽牌,不是计算牌——这正是运行时默认用 INT8
-权重(生产 seed 图变体是 `int8_sym_batch_fused_gqa`)加 U8 KV 缓存(调度器配置里的
-`kv_precision: str = "u8"`)的原因。([第三篇](/zh/blog/paged-kv-batching-without-vllm/)算缓存的账。)这也是为什么
-**批处理**是那个大杠杆:在一个解码步里服务 $B$ 个请求,权重只读*一次*、却摊到 $B$ 个 token 上,把 $I$
-推向脊点,把一个带宽受限的问题变成计算受限的。
+```cpp
+// 强行把普通的 SDPA 算子转化为支持内存页表的 PagedAttention
+ov::pass::SDPAToPagedAttention(
+    false, false, allow_score_aggregation, false, false, false)
+    .run_on_model(model);
 
-## 决定能不能上线的那个指标:RTF
+// 锁定 KV Cache 的硬件参数
+specialize_kv_cache_parameters(model, heads, block_size, head_dim, cache_element_type);
+```
 
-对流式 TTS,有一个数把其余都收进去——**实时因子(real-time factor)**:
+这要求我们在外围自己维护一套虚拟内存映射表（Block Table），将逻辑上的连续 Token 映射到物理上不连续的小内存块（Block_size=16）中。彻底消灭了固定桶（Fixed Bucket）预分配带来的内存内部碎片化问题。
 
-$$
-\text{RTF} \;=\; \frac{\text{计算耗时}}{\text{产出音频的时长}}.
-$$
+### 4.2 极限榨取：U8 KV 缓存量化
 
-$\text{RTF} < 1$ 意味着你生成音频比它播放更快——流式不卡顿的必要条件。$\text{RTF} = 0.5$ 时,你每秒
-计算产出两秒语音,留出抖动余量;$\text{RTF} > 1$ 时,缓冲区耗尽,音频卡顿。在 12Hz 的帧率下,
-$\text{RTF}=1$ 对应的每帧预算是 $1/12 \approx 83\,\text{ms}$ 的墙钟时间,而每一帧是一个 talker AR 步
-加上 subcode 补齐加上它那份流式 decoder。RTF 是把上面那套带宽数学与一个可交付产品绑在一起的约束:正确
-还不够,你得在面前那台设备上把每帧压进 $1/12$ 秒。(还有两个数与它并列:**首音延迟
-time-to-first-audio**,分块 decoder 就为它调过;以及并发——在 RTF 之内你能同时撑住几条流,这是批处理器
-买来的。)
+公式里唯一能动的因子，依然是数据精度。
+在 `OnlineBatchConfig` 中，我们将 Paged-KV 的缓存精度强行钉死在 **U8（8位无符号整数）**：
 
-## 教训:可移植性是一种能力
+```python
+@dataclass
+class OnlineBatchConfig:
+    max_batch_size: int = 8
+    max_cache_blocks: int = 2048
+    kv_precision: str = "u8"
+    block_size: int = 16
+```
 
-很容易把「能在 OpenVINO 上跑」归进「退路」——抢不到 H100 时才做的事。我倒过来看。生态是 CUDA 形状的,而
-能把服务栈——分页 KV、在线批处理器、流式——在另一个运行时上重建,是一种真本事,理由有二。
+通过配置 2048 个 Block，并对 KV 向量执行 Per-Token 与 Per-Channel 的对称量化，我们将高并发带来的 KV 显存开销直接**腰斩**。这不仅省出了宝贵的可用内存，还让每步解码搬运的历史数据流量减半，再次减轻了带宽总线的压力。
 
-第一,它能去 CUDA 去不了的地方:一台消费级笔记本的核显、一台 Intel 边缘盒子、任何没有 N 卡、也没有
-数据中心的地方。对 TTS 这类东西,那才是实际部署面的大头。
+---
 
-第二——也是我看重的部分——它逼你*真正理解那条你平时 pip install 就略过的推理循环*。一旦你亲手搭过
-AR 解码、对着真实内存预算给 U8 KV 缓存定过尺寸、写过准入调度器,vLLM 就不再是魔法,而成了一组你本可
-自己做出的决定。那份理解,在哪儿都回本,CUDA 也不例外。
+## 5. 异构调度：将 NPU 拉入战场 (平台级优化)
 
-这是概览。系列接下来的篇章,会把那个 rust 色方块里的每个盒子逐一打开。下一篇:大家以为是已解决黑盒的
-那部分——[Qwen3-TTS 究竟怎么把文本变成一帧声音](/zh/blog/how-qwen3-tts-makes-a-frame/),以及那个让
-12Hz 多码本解码器在 OpenVINO 上变得可行的双图拆分。
+在 Ultra x7 358h 上，如果我们仅仅死盯着 iGPU 薅羊毛，很快就会撞上 TDP（热设计功耗）功耗墙，导致 iGPU 降频。真正的破局点在于合理利用那块低功耗的 **NPU (Neural Processing Unit)**。
 
-## 延伸阅读
+在 [`qwen3_tts_ov/npu_offload_profile.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/npu_offload_profile.py) 与运行时的设备分发模块中，我们设计了精密的异构调度策略（Heterogeneous Scheduling）。
 
-- [PagedAttention / vLLM](https://arxiv.org/abs/2309.06180) —— 连续批处理和分页 KV 在 CUDA 上替你买到了什么,以及为什么换个地方你得重建它们。
-- [FlashAttention](https://arxiv.org/abs/2205.14135) —— 那个离开 CUDA 就失去的、IO 感知的融合注意力 kernel;这篇论文也是「注意力是内存受限的」这一论断最清楚的出处。
-- [OpenVINO 文档](https://docs.openvino.ai/) —— IR、设备插件(CPU/GPU/NPU)与模型优化。
-- [Roofline: an insightful visual performance model](https://dl.acm.org/doi/10.1145/1498765.1498785) —— Williams、Waterman 与 Patterson;算术强度和脊点的出处。
+TTS 的解码过程（详见本系列的[第二篇](/zh/blog/how-qwen3-tts-makes-a-frame/)）其实包含两部分：
+1. **Talker 模型**：负责长文本自回归注意力，带有庞大的 Paged-KV Cache，是一个彻底的**带宽受限型（Memory-Bound）**任务。
+2. **Stream Decoder 模型**：一个固定输入尺寸的流式卷积/Transformer栈，负责将生成的码本 Token 映射回 PCM 波形。它不需要回看无限长的历史，拥有极高的数据重用率，是一个典型的**计算受限型（Compute-Bound）**任务。
+
+于是，策略清晰了：
+我们通过 OpenVINO 的设备标识符 `ov::device::NPU`，将 Stream Decoder 这部分极其适合持续稳定计算的静态图，强行卸载（Offload）到 NPU 上执行。
+
+```python
+# 运行时异构配置逻辑简述
+if npu_offload_policy == "decoder":
+    # 核心的 AR Talker 留在拥有高带宽和强大 DP4A 指令的 iGPU
+    core.compile_model(talker_model, "GPU", gpu_config)
+    # 将流式声码器迁移至 NPU，分摊 iGPU 的算力与热力负担
+    core.compile_model(decoder_model, "NPU", npu_config)
+```
+
+通过将重度计算负载分摊给 NPU，iGPU 可以将全部精力集中在对抗内存带宽墙上。在实际压测中，这种异构协同不仅稳住了并发时的 RTF，还显著降低了整机的功耗风扇噪音。
+
+在搞定了底层的硬件适配、量化与调度框架后，这套系统看起来已经拥有了扛住高并发的骨架。但模型本身的计算拓扑依然是一颗定时炸弹。在下一篇 [拆解 Qwen3-TTS：OpenVINO 移植过程中的图分离与调度实践](/zh/blog/how-qwen3-tts-makes-a-frame/) 中，我将展示为什么把整个模型直接导出是一条死路，以及我是如何像外科手术一般，将模型切开并实现非对称调度的。
