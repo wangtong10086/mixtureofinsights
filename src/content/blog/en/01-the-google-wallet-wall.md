@@ -97,9 +97,8 @@ satisfy a backend that knows what the real root signs.
 - The Reddit fix: set every `spoof*` in `pif.json` to `0` (disable PIF fingerprint spoofing).
 - The XDA step: clear data for GMS×2 / GSF / Vending / Wallet, then reboot.
 
-Across repeated full add-card capture runs — a stack of `wallet_addcard` / `wallet_retry`
-logcat dumps, each megabytes long — every path ended at the same
-`Device fails attestation`.
+Across repeated full add-card logcat capture runs, each megabytes long, every path
+ended at the same `Device fails attestation`.
 
 ## What about fixing the TEE for real?
 

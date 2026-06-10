@@ -1,7 +1,7 @@
 ---
 title: "A control plane for renting GPUs"
 description: "The hard part of model iteration isn't the training code — it's the orchestration mess around ephemeral, rented GPUs. ORBIT's bet: make a run a reproducible artifact, not a shell session, by splitting the control plane from the execution plane."
-date: 2026-06-16
+date: 2026-06-10
 order: 1
 series: "orbit"
 reading: "11 min read"

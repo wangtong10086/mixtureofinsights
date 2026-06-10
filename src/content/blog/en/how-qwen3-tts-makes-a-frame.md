@@ -1,7 +1,7 @@
 ---
 title: "How Qwen3-TTS makes a frame of sound"
 description: "A TTS model isn't one graph — it's a small pipeline of graphs with wildly different compute shapes. The key design move in porting Qwen3-TTS to OpenVINO is cutting it at the seams: a talker graph for long-context attention, a cached subcode graph for the rest of each multi-codebook frame, and a chunked streaming decoder."
-date: 2026-06-20
+date: 2026-06-10
 order: 2
 series: "openvino-tts"
 reading: "14 min read"

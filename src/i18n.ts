@@ -6,9 +6,9 @@ export const ui = {
   en: {
     'nav.writing': 'Writing',
     'nav.about': 'About',
-    'hero.title': 'A mixture of insights.',
+    'hero.title': 'Mixture of Insights.',
     'hero.desc':
-      'Notes from an LLM post-training & agent engineer — alignment, RL and reward modeling by day; a standing habit of taking systems apart until I know exactly why they behave the way they do.',
+      'A long-running notebook about building and taking systems apart: models, tools, infrastructure, failures, and the judgment behind technical work.',
     'section.series': 'Series',
     'section.notes': 'Notes',
     'section.notesSub': 'Standalone',
@@ -22,9 +22,9 @@ export const ui = {
   zh: {
     'nav.writing': '文章',
     'nav.about': '关于',
-    'hero.title': '洞见的混合。',
+    'hero.title': 'Mixture of Insights.',
     'hero.desc':
-      '一名大模型后训练与 Agent 算法工程师的笔记 —— 白天做对齐、强化学习与奖励建模；业余习惯把系统拆到底，直到弄清它为何如此运作。',
+      '这里会长期记录我拆解系统、训练模型、打磨工具时留下的笔记：从一行日志到一次架构取舍，从工程细节到人的判断。写给未来的自己，也写给同样愿意把问题追到底的人。',
     'section.series': '系列',
     'section.notes': '笔记',
     'section.notesSub': '独立文章',
@@ -60,21 +60,21 @@ export const series: Record<string, { order: number; en: string; zh: string; blu
     en: 'Post-Training in Practice',
     zh: '后训练实战',
     blurbEn: 'From data engines to GRPO, reward hacking, DPO and self-play — the math for why each method works, and why the data usually outweighs the optimizer.',
-    blurbZh: '从数据引擎到 GRPO、奖励黑客、DPO 与自我博弈 —— 每种方法为何有效的数学,以及为什么数据通常比优化器更重要。',
+    blurbZh: '后训练不只是换一个优化器。这里写数据怎么长出来、奖励怎么骗人、RL 什么时候值得上，以及模型到底学到了什么。',
   },
   'orbit': {
     order: 2,
     en: 'ORBIT — orchestrating training on rented GPUs',
     zh: 'ORBIT —— 在租来的 GPU 上编排训练',
     blurbEn: 'Make a training run a reproducible artifact, not a shell session: a declarative control plane reconciled against a disposable execution plane.',
-    blurbZh: '把一次训练变成可复现的工件,而非一个 shell 会话:用声明式的控制平面去协调一个用完即弃的执行平面。',
+    blurbZh: '租来的机器会消失，训练留下的东西不能消失。这个系列写一次运行怎样从 shell 会话变成可复现的工件。',
   },
   'openvino-tts': {
     order: 3,
     en: 'Shipping a TTS model on OpenVINO',
     zh: '把 TTS 模型搬上 OpenVINO',
     blurbEn: 'Rebuilding the CUDA serving stack — paged-KV, a quantized cache, continuous batching — on an Intel iGPU, derived from the bandwidth math up.',
-    blurbZh: '在一块 Intel 核显上,从带宽的数学出发,亲手重建 CUDA 的服务栈 —— 分页 KV、量化缓存、连续批处理。',
+    blurbZh: '离开 CUDA 以后，很多平时理所当然的东西都要重新做一遍：缓存、批处理、带宽账，还有第一帧声音。',
   },
   'agents': {
     order: 4,
@@ -86,9 +86,9 @@ export const series: Record<string, { order: number; en: string; zh: string; blu
   'android-hardening': {
     order: 5,
     en: 'Hardening a rooted Android device against app detection',
-    zh: '对抗 App 检测:加固一台 root 的安卓设备',
+    zh: '一台 root 手机能藏住什么',
     blurbEn: 'How a non-privileged app detects a rooted custom ROM, channel by channel — and the two walls (verified boot, hardware attestation) that userspace cannot move.',
-    blurbZh: '一个非特权 App 逐条通道地如何识别一台 root 的定制 ROM —— 以及用户空间挪不动的两堵墙:验证启动与硬件证明。',
+    blurbZh: '从包名、系统特性、日志到硬件证明，一条通道一条通道地看：哪些能藏，哪些最好早点承认撞墙。',
   },
 };
 export function seriesName(key: string | undefined, lang: Lang): string | undefined {

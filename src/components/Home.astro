@@ -17,6 +17,14 @@ const locale = lang === 'zh' ? 'zh-CN' : 'en';
 const fmt = (d) => new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short', day: 'numeric' }).format(d);
 const cover = (p) => `/og/${slugOf(p.id)}.jpg`;
 const href = (p) => postUrl(lang, slugOf(p.id));
+const featuredSlugs = [
+  'post-training-is-a-data-problem',
+  'a-control-plane-for-renting-gpus',
+  'when-the-gpu-isnt-an-nvidia',
+];
+const featured = featuredSlugs
+  .map((slug) => mine.find((p) => slugOf(p.id) === slug))
+  .filter(Boolean);
 ---
 <section class="wrap hero">
   <h1>{tr('hero.title')}</h1>
@@ -24,6 +32,23 @@ const href = (p) => postUrl(lang, slugOf(p.id));
 </section>
 
 <section class="wrap">
+  <section class="featured-strip" aria-label={lang === 'zh' ? '精选文章' : 'Featured posts'}>
+    <header class="section-head featured-head">
+      <span class="kicker">{lang === 'zh' ? '精选' : 'Featured'}</span>
+      <h2 class="section-title">{lang === 'zh' ? '可以从这里开始读' : 'Start Here'}</h2>
+    </header>
+    <div class="featured-grid">
+      {featured.map((p) => (
+        <a class="featured-card" href={href(p)}>
+          <img class="featured-thumb" src={cover(p)} alt="" width="320" height="180" loading="lazy" />
+          <span class="featured-meta">{fmt(p.data.date)}{p.data.reading ? ` · ${p.data.reading}` : ''}</span>
+          <h3>{p.data.title}</h3>
+          <p>{p.data.description}</p>
+        </a>
+      ))}
+    </div>
+  </section>
+
   {groups.map((g) => (
     <>
       <header class="section-head">

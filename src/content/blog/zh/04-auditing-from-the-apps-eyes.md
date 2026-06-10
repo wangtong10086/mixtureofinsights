@@ -1,6 +1,6 @@
 ---
-title: "以 App 的视角审计:怎么知道一个无 root 的 App 究竟看得见什么"
-description: "你没法从 adb shell 判断一个普通 App 看得见什么——shell 拥有 App 永远没有的特权。用三种「镜片」透过 App 的眼睛去看,以及每一种的盲区。"
+title: "别用 adb shell 代替 App 的眼睛"
+description: "shell 看到的世界，普通 App 未必看得到。要审计检测面，得从 App 自己的 UID、命名空间和 SELinux 域里看。"
 date: 2026-06-10
 order: 4
 series: "android-hardening"
@@ -8,8 +8,11 @@ reading: "9 分钟"
 tags: ["android", "selinux", "auditing", "nsenter"]
 ---
 
-在包名、特性、权限、props、日志都处理完之后,诚实的问题仍在:**一个普通 App 还能观察到什么?**
-你没法从 `adb shell` 回答它——shell 和 App 活在不同的世界里,而且是在三个维度上同时不同。
+处理完包名、特性、权限、props 和日志以后，我还剩一个不太舒服的问题：这些检查是在我自己的视角里干净，
+还是在普通 App 的视角里也干净？
+
+这个问题不能靠 `adb shell` 回答。shell 不是 App，它有不同的 uid、不同的 SELinux 域、不同的挂载命名空间。
+它看到的世界更像维修间，不像 App 真正生活的房间。要做一次诚实的审计，就得尽量从 App 的眼睛里往外看。
 
 ## 为什么 `adb shell` 会说谎
 

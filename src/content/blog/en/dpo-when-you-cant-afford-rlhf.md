@@ -1,7 +1,7 @@
 ---
 title: "DPO when you can't afford RLHF"
 description: "RLHF is powerful and heavy — a reward model, an online rollout loop, instability. DPO gets most of the way with a fraction of the machinery, and the reason it can is a single line of algebra that turns a reward model into a closed-form target. The derivation, the gradient that explains why it works, and the catch — which is always the data."
-date: 2026-06-14
+date: 2026-06-10
 order: 4
 series: "post-training"
 reading: "12 min read"

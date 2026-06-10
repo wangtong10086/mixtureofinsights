@@ -1,7 +1,7 @@
 ---
 title: "Self-play, and the games models teach themselves"
 description: "There's no dataset of good game-play. But in a game with a clear outcome, you can manufacture one — let a strong sampler play out games, filter by who won, and the transcripts become the strategy data. The series finale, where the data engine, the verifier, and emergent strategy all meet — grounded in Orbit's GAME pipeline."
-date: 2026-06-15
+date: 2026-06-10
 order: 5
 series: "post-training"
 reading: "13 min read"

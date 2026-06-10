@@ -1,6 +1,6 @@
 ---
-title: "logcat 泄漏:十五个 App 正悄悄读着你整台设备的日志"
-description: "你藏好了包名,也藏好了特性。然后你发现十五个 App 默默持有 READ_LOGS——读着整台设备的日志,而你漏掉的每一行 Magisk、lineage 字样都明晃晃地躺在那里。"
+title: "十五个 App 正在读整台设备的日志"
+description: "包名和系统特性都藏好了，logcat 却还在漏。只要第三方 App 拿到 READ_LOGS，Magisk、Lineage 和你自己的调试输出都会变成线索。"
 date: 2026-06-10
 order: 3
 series: "android-hardening"
@@ -8,9 +8,11 @@ reading: "8 分钟"
 tags: ["android", "logcat", "read_logs", "selinux"]
 ---
 
-你藏好了包名。你藏好了特性。然后一个 App 弹窗请求「访问所有设备日志」,你才意识到:任何你漏掉的
-东西——一行散落的 `Magisk`、你模块的 tag、一个 `lineage` 字串——都正躺在 logcat 里,任何能读它的
-App 都看得见。
+包名和系统特性藏好以后，我以为最显眼的洞已经补上了。直到一个 App 弹窗请求“访问所有设备日志”，才意识到
+另一个更朴素的旁路还开着：你以为藏在各层里的痕迹，可能早就被自己打印进了 logcat。
+
+一行散落的 `Magisk`、一个模块 tag、一个 `lineage` 字串，只要进入全局日志，就不再属于那个写出它的进程。
+任何能读日志的 App，都能把它当作线索拿走。
 
 让这成为一条真旁路、而非小插曲的,是这一点:**logcat 是全系统的,不是按 App 隔离的。** 系统日志
 缓冲区(`main`、`system`、`crash`、`events` ……)装的是*每一个*进程的输出——框架、GMS、你 Magisk
@@ -18,7 +20,7 @@ App 都看得见。
 另一个 App 的内存,但一个持有 `READ_LOGS` 的 App,把这些全以明文读走。你从 PackageManager API 那
 小心藏好的破绽,在这条旁路上以原始字符串的形式原样漏了回来。
 
-## 发现
+## 先看看谁在读
 
 快速排查一下谁已经持有 `READ_LOGS`——也就是吊销脚本里只读的那一半:
 

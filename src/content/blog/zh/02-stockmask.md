@@ -1,6 +1,6 @@
 ---
-title: "StockMask:不碰任何 App,造一层「原厂幻觉」"
-description: "HideMyApplist 藏的是包名,App 却照样识破了自定义 ROM。解法是一个约 200 行的模块——它按「谁在问」来过滤 system_server 的应答,从不注入进 App 本身。"
+title: "StockMask：不碰 App，也能造一层原厂感"
+description: "HideMyApplist 藏得住包名，藏不住系统特性。更稳的办法是在 system_server 里按调用方过滤回答，而不是把钩子塞进每个 App。"
 date: 2026-06-09
 order: 2
 series: "android-hardening"
@@ -8,8 +8,11 @@ reading: "12 分钟"
 tags: ["android", "lsposed", "lineageos", "system_server"]
 ---
 
-你用 HideMyApplist 藏好了包名列表。银行和购物 App 却照样弹人机验证。有别的东西在宣告这是自定义
-ROM。这篇讲怎么找到它,以及怎么用一个小小的 LSPosed 模块、在从不碰 App 本身的前提下把它堵上。
+一开始我以为包名藏住就差不多了。HideMyApplist 生效，常见 root 包也看不见，可银行和购物 App 还是会
+把设备当成可疑环境。说明还有别的东西在主动自报家门。
+
+后来查到的不是某个 App 的奇技淫巧，而是 Android 自己很正常的一层：PackageManager 会把系统特性和权限
+告诉调用方。问题于是变成：能不能不碰 App，只在 `system_server` 回答问题时，按调用方收窄视野？
 
 ## HMA 看不到的东西
 

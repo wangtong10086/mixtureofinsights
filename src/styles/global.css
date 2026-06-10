@@ -66,6 +66,20 @@ body {
 .section-head .section-title { font-family: var(--serif); font-weight: 600; font-size: 1.22rem; margin: .15rem 0 0; color: var(--muted); letter-spacing: -.01em; }
 .section-head .section-sub { margin: .35rem 0 0; max-width: 64ch; font-size: .92rem; line-height: 1.55; color: var(--muted); opacity: .82; }
 
+.featured-strip { margin: 0 0 2.8rem; padding: 1.1rem 0 1.8rem; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.featured-head { margin-top: 0; }
+.featured-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-top: 1rem; }
+.featured-card { display: block; text-decoration: none; color: inherit; }
+.featured-card:hover h3 { color: var(--accent); }
+.featured-thumb {
+  width: 100%; aspect-ratio: 16 / 9; height: auto; display: block;
+  border-radius: 8px; border: 1px solid var(--line); object-fit: cover; background: var(--surface);
+  margin-bottom: .7rem;
+}
+.featured-meta { display:block; color: var(--faint); font-size: .76rem; letter-spacing: .03em; text-transform: uppercase; }
+.featured-card h3 { margin: .25rem 0 .4rem; font-family: var(--serif); font-size: 1.1rem; line-height: 1.25; transition: color .2s; }
+.featured-card p { margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.55; }
+
 .series-label { font-size: .78rem; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); font-weight: 600; margin-bottom: .3rem; }
 
 .posts { list-style: none; padding: 0; margin: 1rem 0 0; }
@@ -138,6 +152,7 @@ body {
 @media (max-width: 560px) {
   body { font-size: 1.02rem; }
   .hero { padding: 2.6rem 0 1.6rem; }
+  .featured-grid { grid-template-columns: 1fr; }
 }
 
 /* ===== enhancements: theme toggle, progress, TOC, socials ===== */

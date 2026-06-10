@@ -1,7 +1,7 @@
 ---
 title: "What are you actually rewarding?"
 description: "RL doesn't optimize what you want — it optimizes exactly what you wrote down. The gap between the two is reward hacking, and closing it is most of the real work. Verifiers vs reward models, and how a constraint reward earned its +12%."
-date: 2026-06-13
+date: 2026-06-10
 order: 3
 series: "post-training"
 reading: "13 min read"

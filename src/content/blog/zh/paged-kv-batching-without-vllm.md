@@ -1,17 +1,20 @@
 ---
-title: "没有 vLLM 时的 paged-KV、U8 与批处理"
-description: "你有了模型的图,现在要把它们服务起来——长上下文、并发、在一块核显的内存预算里,且没有 vLLM 的任何机械。四个会彼此叠加的决策:用 paged-KV 取代 fixed bucket、一个 U8 缓存、全上下文生成,以及把在线批处理放进调度层、让同一套 IR 服务所有人。"
-date: 2026-06-21
+title: "没有 vLLM，也要管好 KV 和批处理"
+description: "模型图只是开始。长上下文、并发和核显内存预算一起压过来时，paged-KV、U8 缓存和在线批处理才真正决定它能不能服务。"
+date: 2026-06-10
 order: 3
 series: "openvino-tts"
 reading: "14 分钟"
 tags: ["llm", "inference", "openvino", "kv-cache", "batching"]
 ---
 
-[上一篇](/zh/blog/how-qwen3-tts-makes-a-frame/)把模型切成了图。有了图也许是一半的活;另一半是把它们
-*服务*起来——长上下文、一次好几个请求、在一块 Intel 核显的内存预算里,且没有你平时倚仗的那套 CUDA
-服务栈。这里的「vLLM」不是一句 import,而是你得自己做的四个决策——而它们之所以奏效,是因为它们会
-**彼此叠加**。
+[上一篇](/zh/blog/how-qwen3-tts-makes-a-frame/)把模型切成了图。那一刻很容易产生错觉：图有了，服务也就
+差不多了。真正把 sidecar 跑起来时，问题才开始挤到一起：长上下文会吃 KV，并发会放大 KV，核显内存又
+不宽裕，而你手边没有 vLLM。
+
+于是“能跑”变成了四个互相牵连的问题：缓存怎样增长，缓存用什么精度，长文本要不要切段，并发请求该在哪里
+批起来。`OnlineBatchScheduler`、`SDPAToPagedAttention`、`--kv-cache-profile` 和 `/health` 都是这些
+问题逼出来的，不是为了把架构图画得好看。
 
 ## 决策一 —— paged-KV,而非 fixed cache bucket
 
@@ -70,8 +73,8 @@ $$
 
 其中开头的 $2$ 是 key 与 value,$L$ 是层数,$H$ 是 **KV 头数**(注意是 KV 头,不是 query 头——GQA 让
 多个 query 头共享一组 KV,正是在这里把 $H$ 砍小),$d_{\text{head}}$ 是每头维度,$s$ 是序列长度,$B$
-是 batch。两点值得注意。其一,它对 $s$ 和 $B$ **都是线性的**——长上下文*和*并发推的是同一个数,这正是
-本篇全部的张力。其二,运行时唯一能动、又无需重训的项,是 $\text{bytes}_{\text{dtype}}$。
+是 batch。两点值得注意。其一,它对 $s$ 和 $B$ **都是线性的**——长上下文*和*并发推的是同一个数,这里的
+张力全在这一点。其二,运行时唯一能动、又无需重训的项,是 $\text{bytes}_{\text{dtype}}$。
 
 用整数把它落地。取一个中等规模的 talker——比如 $L=28$ 层、$H=8$ 个 KV 头(GQA 已经在这儿把 $H$ 砍
 小了——在线路径选的正是 GQA seed 图,调度器据此设 `heads = 8 if paged_kv_seed_uses_gqa(seed_key) else 16`)、
@@ -224,4 +227,3 @@ elif args.preset == "minimal-online-gqa":
 - [Orca: a distributed serving system for transformers](https://www.usenix.org/conference/osdi22/presentation/yu) —— 迭代级(连续)批处理,让在线批处理回本的那个调度思想。
 - [OpenVINO:优化推理与 KV 缓存](https://docs.openvino.ai/) —— 设备插件、权重压缩(INT8),以及预热步骤抢先做掉的那个模型缓存。
 - [LLM.int8() / 权重量化](https://arxiv.org/abs/2208.07339) —— INT8 权重和 U8 缓存背后的精度-质量权衡。
-</content>

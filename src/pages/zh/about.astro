@@ -13,7 +13,7 @@ const em = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wi
       <div class="profile-avatar">王</div>
       <div>
         <h1 class="profile-name">王通 · Wang Tong</h1>
-        <p class="profile-role">大模型后训练与 Agent 算法工程师 —— 对齐、强化学习、奖励建模。</p>
+        <p class="profile-role">大模型后训练与 Agent 算法工程师，关注模型行为、数据闭环与系统边界。</p>
       </div>
     </div>
 
@@ -25,30 +25,22 @@ const em = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wi
 
     <div class="prose">
       <p>
-        我是一名大模型算法工程师，专注 <strong>后训练与对齐</strong> —— SFT、DPO、RLHF / RLVR、
-        PPO、GRPO 与奖励建模，以及为它们供能的数据引擎：合成数据、Self-Play、拒绝采样、
-        LLM-as-Judge。我喜欢把整条链路握在手里，从
-        <em>数据生成 → 模型训练 → 离线/在线评测 → 工程部署</em> 闭环打通，并且对评测框架与
-        verifier 的重视，不亚于对训练本身。
+        我做大模型后训练与 Agent，也关心模型之外那一圈东西：数据从哪里来，奖励是否诚实，评测能不能
+        骗过自己，系统坏掉时第一条线索在哪里。
       </p>
-      <p><strong>近期在做。</strong> 面向推理与规划 Agent 的强化学习（GRPO + 奖励模型流水线，在
-        内部规划 Benchmark 上把复杂约束满足率提升约 12%）；在线蒸馏（8×H200 上 Qwen 35B→4B 的
-        Forward-KL）；面向浏览器与软件工程 Agent 的评测框架（LiveWeb、SWE 轨迹）；以及把这一切
-        跑在远程 GPU 上的训练/评测编排。常用工具：PyTorch、DeepSpeed / Megatron、vLLM / SGLang、
-        ms-swift，还有大量 CUDA。
+      <p>
+        我喜欢把复杂系统拆到能被解释的程度。公式要能落到训练行为，代码要能留下可复现的产物，日志要
+        能回答一个具体问题。技术里最有意思的地方，往往不是某个新名词，而是几个抽象层互相咬合的边界。
       </p>
       <p><strong>关于这个博客。</strong> 名字是个小玩笑 —— 一个 <em>专家混合（MoE）</em>，
-        被路由到我当下最着迷的问题上。这里写的是长篇实战笔记，力求自带分量：给出真正的损失函数，
-        而不是对它挥挥手；写明确切的 API 或证明字段，而不是「系统会处理」。一个后训练系列，推导
-        GRPO 与 DPO 为何有效；一个 OpenVINO 系列，从带宽的数学出发重建 CUDA 的服务栈；一个安卓
-        系列，逐条通道地追踪一个 App 如何识别被改过的系统、以及用户空间最终在哪里撞上硅。不同的
-        层，同一个习惯 —— 把东西拆到底，直到弄清它为何如此运作。
+        被路由到我正在拆的问题上。这里会写模型训练、推理服务、远程机器、安卓系统，也会写一些工具和
+        旁枝。写得慢一点，尽量写清楚：少一点结论先行，多一点「为什么它只能这样工作」。
       </p>
       <blockquote>
-        <p>先证明失败、再开药方；在为一堵墙耗上一周之前，先弄清你站在哪堵墙前。</p>
+        <p>先把问题追到底，再决定要不要优雅地解决它。</p>
       </blockquote>
       <p>
-        招聘大模型后训练 / Agent 方向、在这一层做东西、或只是想交流，都可以找我：
+        如果你也在做相近的问题，或只是想聊某篇文章，可以在这里找到我：
         <a href={GITHUB} target="_blank" rel="noopener">GitHub</a>、
         <a href={LINKEDIN} target="_blank" rel="noopener">LinkedIn</a>、或
         <a href={`mailto:${EMAIL}`}>邮箱</a>。

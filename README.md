@@ -2,12 +2,15 @@
 
 Source for **[mixtureofinsights.com](https://mixtureofinsights.com)** — a bilingual
 (English / 中文) technical blog by **Wang Tong (王通)**, an LLM post-training & agent
-algorithm engineer. Long-form, project-grounded field notes on the *machine around the
-model*: post-training and RL, agent systems, training/serving infrastructure, and the
+algorithm engineer. It is a project-grounded technical blog about post-training and
+RL, agent data and evaluation, remote GPU orchestration, inference serving, and the
 low-level systems work underneath.
 
-The name is a small joke on **Mixture of Experts** — a set of expert write-ups, routed
-to whatever problem currently has my attention.
+The name is a small joke on **Mixture of Experts** — notes routed to whatever hard
+system currently has my attention. The site should read like a serious technical
+blog, not a resume: strong articles first, with investigation trails, code anchors,
+failure modes, and engineering trade-offs used as part of the writing rather than
+as overt self-promotion.
 
 ## Stack
 

@@ -1,7 +1,7 @@
 ---
 title: "Cold-start, then climb"
 description: "Pure RL from a base model on a hard task mostly produces high-variance garbage — and the policy-gradient math says exactly why. The fix is a two-stage recipe: a small SFT cold-start to give the policy a shape, then GRPO to climb. The recipe, the math, and the failure modes that actually bite."
-date: 2026-06-12
+date: 2026-06-10
 order: 2
 series: "post-training"
 reading: "13 min read"

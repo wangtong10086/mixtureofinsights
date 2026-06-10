@@ -1,7 +1,7 @@
 ---
 title: "Paged-KV, U8, and batching where vLLM isn't"
 description: "You have the model graphs. Now serve them — long-context, concurrent, inside an iGPU's memory budget, with none of vLLM's machinery. Four decisions that compose: paged-KV over fixed buckets, a U8 cache, full-context generation, and online batching that lives in the scheduler so one IR set serves everyone."
-date: 2026-06-21
+date: 2026-06-10
 order: 3
 series: "openvino-tts"
 reading: "14 min read"

@@ -1,7 +1,7 @@
 ---
 title: "A task-agnostic core, and plugins that earn their keep"
 description: "ORBIT's execution core flatly refuses to know whether it's running training, eval, or data collection. That one constraint — push every task-specific thing up into a plugin, keep the engine generic — is what stops a new task type from forking the executor. The design, and the trade-off it buys."
-date: 2026-06-18
+date: 2026-06-10
 order: 2
 series: "orbit"
 reading: "12 min read"

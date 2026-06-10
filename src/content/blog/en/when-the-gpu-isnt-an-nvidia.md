@@ -1,7 +1,7 @@
 ---
 title: "When the GPU isn't an NVIDIA"
 description: "The whole LLM stack assumes CUDA. The GPU in front of you is often an Intel iGPU or a CPU. Getting a real, low-latency autoregressive TTS to stream there means rebuilding the parts you usually pip-install — the decode loop, the KV cache, the batching scheduler — on OpenVINO."
-date: 2026-06-17
+date: 2026-06-10
 order: 1
 series: "openvino-tts"
 reading: "14 min read"

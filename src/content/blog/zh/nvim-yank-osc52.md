@@ -1,14 +1,14 @@
 ---
-title: "Neovim: 复制到系统剪贴板 (OSC 52)"
-description: "在 SSH / WSL 下让 Neovim 的复制直达系统剪贴板 —— Neovim ≥ 0.10 原生支持 OSC 52,几行配置即可。"
+title: "Neovim：用 OSC 52 复制到系统剪贴板"
+description: "在 SSH / WSL 下让 Neovim 的 yank 直达系统剪贴板。Neovim 0.10 之后原生支持 OSC 52，几行配置就够了。"
 date: 2024-06-16
 order: 6
 reading: "4 分钟"
 tags: ["neovim", "osc52", "terminal"]
 ---
 
-> 一条早期的实用笔记 · 迁移自旧博客。在 SSH 或 WSL 环境里，Neovim 的 `yank` 默认进不了
-> 系统剪贴板。Neovim 0.10 起原生支持 **OSC 52**，几行配置就能解决。
+> 一条早期的小笔记，迁移自旧博客。问题很普通：在 SSH 或 WSL 里写代码时，Neovim 的 `yank` 默认进不了
+> 系统剪贴板。后来发现 Neovim 0.10 起已经原生支持 **OSC 52**，几行配置就够了。
 
 **OSC 52 到底是什么。** 它是一条终端转义序列 —— `OSC` 即 *Operating System Command* —— 形如
 `ESC ] 52 ; c ; <base64 载荷> BEL`。Neovim 不调用任何剪贴板 API；它只是把这串字节打印到 TTY，

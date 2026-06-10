@@ -8,6 +8,26 @@ posts stay code-grounded rather than paraphrased from memory.
 > Maintenance rule: when you edit a post's technical content, update the corresponding entry below
 > (and vice-versa). If a claim can't be traced to a source here, it shouldn't be stated as fact.
 
+## Editorial writing policy
+
+The site should read like a normal high-quality technical blog. Career value should
+come indirectly: readers trust the author because the articles are deep, coherent,
+source-grounded, and useful.
+
+- Core Chinese posts should usually open with a situation, failure, question, or debugging
+  path before the conclusion. Code anchors and metrics should appear as part of the
+  investigation, not as proof cards.
+- Public metrics may be stated when the benchmark scope is described honestly; private
+  benchmark data, customer/user material, keys, serials, and raw sensitive logs must not
+  be copied into posts.
+- The writing center is project-grounded AI engineering: data generation,
+  verifier/reward design, training, evaluation, remote execution, inference serving,
+  and runtime observability. It should sound useful to serious technical readers first,
+  with enough process that a reader can follow how the answer was found.
+- Android-hardening content is supporting evidence for systems debugging and security
+  judgment, but it should stand as a normal systems/security exploration series in its
+  own right.
+
 ## Series → source repositories
 
 | Series | Source repository | Visibility |
@@ -87,9 +107,8 @@ The specific files/symbols the posts are written against. Paths are relative to 
 - **Prop/SELinux spoof** — `code/fuxi_prop_spoof/post-fs-data.sh`,
   `code/fuxi_prop_spoof/sepolicy.rule` (30 deny rules across 3 app domains × 10 service types).
 - **Scripts** — `code/scripts/revoke-readlogs.sh`, `applog.sh`, `revert-app-limits.sh`.
-- **Wallet / attestation ground truth** — the private device working directory's
-  `fuxi-tee-repair-runbook.md` and the `wallet_addcard*`/`wallet_retry*` capture logs (structure
-  only; see secrets note).
+- **Wallet / attestation ground truth** — a private device runbook and private Wallet capture logs
+  (structure only; see secrets note).
 
 ## External references (papers, docs) by series
 
@@ -169,6 +188,6 @@ rehype-katex) · hand-drawn inline SVG diagrams · cover images via Cloudflare
 
 The Android posts are grounded in the public `fuxi-stealth` code and a **private** device working
 directory used only as ground truth. The following are **never** quoted or reproduced in posts or in
-this doc: keybox material (`keybox_current.xml`), keybox serials, the CRL (`crl.json`), full wallet
-capture logs, and any personal identifiers. Only public mechanism names and the already-public
-log-line *structure* (e.g. `TapAndPay: Device fails attestation`) appear in the posts.
+this doc: keybox material, certificate serials, revocation-list files, full Wallet capture logs, and
+any personal identifiers. Only public mechanism names and the already-public log-line *structure*
+(e.g. `TapAndPay: Device fails attestation`) appear in the posts.

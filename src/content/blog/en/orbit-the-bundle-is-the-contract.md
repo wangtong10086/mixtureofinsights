@@ -1,7 +1,7 @@
 ---
 title: "The bundle is the contract"
 description: "On a rented machine that no longer exists, the only thing you have is what you collected. So the bundle has to be self-describing: layered log surfaces that each answer one question, dependency provenance baked in, and — for code you don't own — a pinned black-box discipline."
-date: 2026-06-19
+date: 2026-06-10
 order: 3
 series: "orbit"
 reading: "12 min read"

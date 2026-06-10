@@ -1,7 +1,7 @@
 ---
 title: "Post-training is a data problem"
 description: "Everyone argues PPO vs GRPO vs DPO. On real projects the win almost always came from the data engine — synthetic trajectories, self-play, rejection sampling and an LLM judge — not the optimizer."
-date: 2026-06-11
+date: 2026-06-10
 order: 1
 series: "post-training"
 reading: "12 min read"
