@@ -1,0 +1,58 @@
+---
+import { render } from 'astro:content';
+import Comments from './Comments.astro';
+import { t, slugOf, postUrl, seriesName, type Lang } from '../i18n';
+const { post, prev, next, lang } = Astro.props as { post: any; prev: any; next: any; lang: Lang };
+const tr = t(lang);
+const seriesLabel = seriesName(post.data.series, lang);
+const { Content, headings } = await render(post);
+const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+const slug = slugOf(post.id);
+const cover = `/og/${slug}.jpg`;
+const locale = lang === 'zh' ? 'zh-CN' : 'en';
+const fmt = (d) => new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric' }).format(d);
+---
+<div class="reading-progress"><span id="rp"></span></div>
+
+<article class="wrap article">
+  {seriesLabel && <div class="series-label">{seriesLabel}</div>}
+  <div class="meta">{fmt(post.data.date)}{post.data.reading ? ` · ${post.data.reading}` : ''}</div>
+  <h1>{post.data.title}</h1>
+  <p class="lede">{post.data.description}</p>
+  {post.data.tags.length > 0 && (
+    <div class="tags">{post.data.tags.map((t2) => <span class="tag">{t2}</span>)}</div>
+  )}
+
+  <img class="cover" src={cover} alt={`${tr('post.coverAlt')} “${post.data.title}”`} width="1024" height="1024" loading="lazy" decoding="async" />
+
+  {toc.length >= 3 && (
+    <details class="toc" open>
+      <summary>{tr('post.contents')}</summary>
+      <ol>
+        {toc.map((h) => (
+          <li class={h.depth === 3 ? 'h3' : 'h2'}><a href={`#${h.slug}`}>{h.text}</a></li>
+        ))}
+      </ol>
+    </details>
+  )}
+
+  <div class="prose"><Content /></div>
+
+  {(prev || next) && (
+    <nav class="post-nav">
+      {prev ? <a href={postUrl(lang, slugOf(prev.id))}><span class="label">{tr('post.prev')}</span>{prev.data.title}</a> : <span></span>}
+      {next ? <a href={postUrl(lang, slugOf(next.id))} style="text-align:right"><span class="label">{tr('post.next')}</span>{next.data.title}</a> : <span></span>}
+    </nav>
+  )}
+
+  <Comments lang={lang} />
+</article>
+
+<script is:inline>
+  (function () {
+    var bar = document.getElementById('rp'); var art = document.querySelector('.article');
+    if (!bar || !art) return;
+    function upd() { var h = art.offsetHeight - window.innerHeight; var p = h > 0 ? (window.scrollY - art.offsetTop) / h : 0; bar.style.width = Math.max(0, Math.min(1, p)) * 100 + '%'; }
+    document.addEventListener('scroll', upd, { passive: true }); window.addEventListener('resize', upd); upd();
+  })();
+</script>

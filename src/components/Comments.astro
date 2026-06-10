@@ -1,0 +1,45 @@
+---
+import { t, type Lang } from '../i18n';
+const { lang = 'en' } = Astro.props as { lang?: Lang };
+const tr = t(lang);
+const giscusLang = lang === 'zh' ? 'zh-CN' : 'en';
+---
+<section class="comments">
+  <h2 class="comments-title">{tr('post.comments')}</h2>
+  <div id="giscus-container" data-giscus-lang={giscusLang}></div>
+</section>
+
+<script is:inline>
+  (function () {
+    var mount = document.getElementById('giscus-container');
+    if (!mount) return;
+    var dark = document.documentElement.dataset.theme === 'dark';
+    var s = document.createElement('script');
+    s.src = 'https://giscus.app/client.js';
+    var attrs = {
+      'data-repo': 'wangtong10086/mixtureofinsights-comments',
+      'data-repo-id': 'R_kgDOS14AeQ',
+      'data-category': 'Announcements',
+      'data-category-id': 'DIC_kwDOS14Aec4C-2e2',
+      'data-mapping': 'pathname',
+      'data-strict': '1',
+      'data-reactions-enabled': '1',
+      'data-emit-metadata': '0',
+      'data-input-position': 'top',
+      'data-theme': dark ? 'dark_dimmed' : 'light',
+      'data-lang': mount.getAttribute('data-giscus-lang') || 'en',
+      'data-loading': 'lazy',
+    };
+    Object.keys(attrs).forEach(function (k) { s.setAttribute(k, attrs[k]); });
+    s.crossOrigin = 'anonymous'; s.async = true;
+    mount.appendChild(s);
+    var tog = document.getElementById('themeToggle');
+    if (tog) tog.addEventListener('click', function () {
+      setTimeout(function () {
+        var d = document.documentElement.dataset.theme === 'dark';
+        var f = document.querySelector('iframe.giscus-frame');
+        if (f) f.contentWindow.postMessage({ giscus: { setConfig: { theme: d ? 'dark_dimmed' : 'light' } } }, 'https://giscus.app');
+      }, 60);
+    });
+  })();
+</script>
