@@ -39,6 +39,13 @@ Markdown file in both `en/` and `zh/` sharing a slug. Front-matter: `title`,
 > **中文 front-matter gotcha:** a `"..."` YAML string can't contain a straight
 > double-quote — use 「」 instead, or js-yaml will fail the build.
 
+## Sources & provenance
+
+The posts are grounded in real source code, not paraphrased docs. See
+[`docs/SOURCES.md`](docs/SOURCES.md) for the mapping of each series to the repository, code
+anchors (files/symbols), and external references it's written against — plus the secrets policy
+for the Android series. Keep it in sync when editing a post's technical content.
+
 ## Develop
 
 ```bash
