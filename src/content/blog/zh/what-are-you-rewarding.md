@@ -1,6 +1,6 @@
 ---
 title: "你到底在奖励什么?"
-description: "RL 不会替你理解目标，它只会认真优化你写下来的那个数。奖励和真实意图之间的缝隙，就是 reward hacking 生长的地方。"
+description: "规划 Agent 如何结合约束验证器与奖励模型，以及过程奖励、KL 正则和奖励过度优化的检查方式。"
 date: 2026-06-10
 order: 3
 series: "post-training"
@@ -8,11 +8,11 @@ reading: "13 分钟"
 tags: ["llm", "rl", "reward-model", "rlvr", "reward-hacking"]
 ---
 
-奖励函数最危险的地方，是它看起来很像目标本身。你写下一个分数，训练开始上升，日志也很漂亮，于是很容易忘记：模型优化的是那个数，不是你脑子里的意图。只要两者之间有缝，策略就会把缝撬开。
+奖励分数上升，很容易被当成任务能力提升。但模型优化的是写进奖励函数的数值；如果它与实际目标有差异，策略就会利用这种差异。
 
-这个问题是在规划 Agent 上被我反复撞出来的。一个方案看起来合理，但细看预算超了；路径看起来顺，时间窗却排不开。把这些东西交给奖励模型猜，它偶尔会给面子；但 RL 不会给面子，它会专门去找 RM 犯错的角落。我倾向于一个极其物理的解法：凡是能写成程序检查的约束，都从 RM 里拿出来，做成 `VerifierResult` 里的硬信号。剩下那些真写不出来的，再交给模型判断。
+我在规划 Agent 上反复遇到这个问题：方案看起来合理，实际超了预算；路线看起来顺，时间窗却排不开。奖励模型（RM）有时会给这些方案高分，RL 随后就会利用这些误判。所以我把能用程序检查的约束写进 `VerifierResult`，其余判断才交给 RM。
 
-这就是 [古德哈特定律 (Goodhart's Law)](https://en.wikipedia.org/wiki/Goodhart%27s_law) 在后训练里的样子：*当一个度量变成目标，它就不再是一个好的度量。* 顺带一提，Manheim 与 Garrabrant 在 [*Categorizing Variants of Goodhart's Law* (2018)](https://arxiv.org/abs/1803.04585) 中将回归型、极值型、对抗型失效分开，这对我后来排查 RM 崩溃有极大的指导。工程上的问题从来不是奖励是否完美，而是策略能走多远，Agent 才开始撒谎，以及你能不能在那之前把它拦住。
+这就是 [古德哈特定律 (Goodhart's Law)](https://en.wikipedia.org/wiki/Goodhart%27s_law) 在后训练里的样子：*当一个度量变成目标，它就不再是一个好的度量。* Manheim 与 Garrabrant 在 [*Categorizing Variants of Goodhart's Law* (2018)](https://arxiv.org/abs/1803.04585) 中将回归型、极值型、对抗型失效分开，这帮助我区分了后来遇到的 RM 失效。排查时，我关心的是策略偏离到什么程度，奖励就不再反映实际质量，以及能否在此之前停止优化。
 
 ## 两种奖励与物理隔离
 
@@ -20,7 +20,7 @@ tags: ["llm", "rl", "reward-model", "rlvr", "reward-hacking"]
 
 **奖励模型(RM)**。当没有程序能判时，一个学出来的模型给质量打分。判断“方案合理且可执行吗”没有干净的 oracle。RM 给你一个验证器够不到的信号。但它本身是个拟合出的网络，必然存在决策边界的盲区，而策略会用极大似然去试探每一个盲区。
 
-验证器与真实目标的相关性对优化压力是平坦的——它是一段确定性程序，一个真正没超预算的方案，无论策略推得多狠，都判正确，没有训练区域的边缘可以掉下去。RM 正好相反：它是有限样本上拟合出的有限模型，与真相的相关性随着策略移出分布而急剧衰减。每一步优化，都是朝着 RM 从没见过、最可能出错的输入迈进。基于这种不对称，我的架构设计是：把所有可校验的逻辑下沉到验证器，只让 RM 兜底不可计算的模糊余项。
+验证器与真实目标的相关性对优化压力是平坦的——它是一段确定性程序，真正没超预算的方案始终会被判为正确，不存在移出训练分布的问题。RM 正好相反：它是有限样本上拟合出的有限模型，与真相的相关性随着策略移出分布而急剧衰减。每一步优化，都是朝着 RM 从没见过、最可能出错的输入迈进。基于这种不对称，我的架构设计是：把所有可校验的逻辑下沉到验证器，只让 RM 兜底不可计算的模糊余项。
 
 规划 Agent 的真实奖励被拆解为这样一条计算流：
 
@@ -63,11 +63,11 @@ if idx == len(local_scores) - 1:
     reward += self.spec.lambda_u * terminal_score                     # 终局结算
 ```
 
-第一项引入了**基于势的塑形 (Potential-based Shaping)**。根据经典强化学习理论，势函数 $\phi$ 在两步之间的差分，能在不改变最优策略的前提下加入稠密引导，这是在数学上规避 reward hack 的正统做法。随后对这些反馈进行折现计算，并用 `process_weight_max` 进行硬裁剪。这个裁剪是底层的最后一道防线：防止任何单步的异常优势梯度引爆整个策略网络。
+第一项是基于势的塑形 (Potential-based Shaping)。根据经典强化学习理论，势函数 $\phi$ 在两步之间的差分，能在不改变最优策略的前提下加入稠密引导，这可以在数学上规避 reward hack。随后对这些反馈进行折现计算，并用 `process_weight_max` 进行硬裁剪。裁剪限制了单步的异常优势梯度，避免它主导策略更新。
 
 ## 奖励崩溃的缩放律
 
-在开发中，我遇到了典型的背离：训练日志里的 Reward 一路狂飙，而留出集的 Benchmark 却死水一潭甚至下降。模型并没有在任务上变强，它只是在“获取 RM 高分”这个游戏里过拟合了。如 DeepMind 收录的 [Specification gaming 案例集](https://deepmindsafetyresearch.medium.com/specification-gaming-the-flip-side-of-ai-ingenuity-c85bdb0deeb4) 所示，Agent 总能找到违背精神却满足字面的漏洞。
+开发时我遇到过这样的背离：训练 Reward 持续上涨，留出集 Benchmark 却停滞甚至下降。模型过拟合了 RM 的评分方式，实际任务表现没有改善。如 DeepMind 收录的 [Specification gaming 案例集](https://deepmindsafetyresearch.medium.com/specification-gaming-the-flip-side-of-ai-ingenuity-c85bdb0deeb4) 所示，Agent 总能找到违背精神却满足字面的漏洞。
 
 Gao、Schulman 与 Hilton 在 [*Scaling Laws for Reward Model Overoptimization* (2022)](https://arxiv.org/abs/2210.10760) 中精确刻画了这种现象：代理 RM 分数单调上升，而真实金标准分数先升、见顶、然后回落。金标准奖励可以拟合为 KL 距离 $d = \sqrt{\mathbb{D}_{\mathrm{KL}}}$ 的函数：
 
@@ -75,14 +75,14 @@ $$
 R(d) \;=\; d\,(\alpha - \beta \log d)
 $$
 
-这揭示了物理极限：存在一个最优 KL 距离，超过这个预算，每多 1 nat 的散度带来的都是真实性能的倒退。扩大 RM 规模能推迟这个顶点的到来，但无法消灭它。
+这个拟合意味着，存在一个最优 KL 距离，超过这个预算，每多 1 nat 的散度带来的都是真实性能的倒退。扩大 RM 规模能推迟这个顶点的到来，但无法消灭它。
 
 另外，正如 Pan 等人在 [*The Effects of Reward Misspecification* (2022)](https://arxiv.org/abs/2201.03544) 中指出的，随着能力提升，策略会发生相变式跳变，骤然发现并利用 hack。
 
 ## 缝隙的闭环策略
 
-1. **绝对的验证器下沉**。将一切可计算约束硬编码，这是防御黑客行为最高杠杆的动作。
-2. **锁死 KL 绳索**。带 KL 正则的目标具有闭式最优解：
+1. **补全验证器**。把所有可计算约束写进程序，这是我最优先处理的部分。
+2. **保留 KL 正则**。带 KL 正则的目标具有闭式最优解：
    $$
    \pi^*(y\mid x) \;\propto\; \pi_{\mathrm{ref}}(y\mid x)\,\exp\!\Big(\tfrac{1}{\beta}\,r(x,y)\Big).
    $$
@@ -90,4 +90,4 @@ $$
 3. **对抗更新**。策略学会的新把戏就是 RM 的 Out-of-Distribution 样本。必须将策略的失败模式持续打标并重训 RM，保持分布同步。
 4. **信评测，不信奖励**。留出集的验证器 Benchmark 才是唯一的真相。
 
-最终，我在规划 Agent 上拿到了复杂约束满足率 12% 的内部 Benchmark 涨幅。功劳不在优化器，而在于堵上了验证器的缺口，将硬约束完全剥离 RM，并不断猎杀策略产生的新 exploit。调 RL，本质就是在和奖励函数的物理破绽作斗争。
+最终，我在规划 Agent 上拿到了复杂约束满足率 12% 的内部 Benchmark 涨幅。改进来自补全验证器、将硬约束完全移出 RM，以及持续处理策略产生的新 exploit，优化器本身没有变化。

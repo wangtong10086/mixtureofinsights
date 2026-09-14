@@ -1,0 +1,967 @@
+{
+  "en/01-the-google-wallet-wall.md": {
+    "route": "/blog/01-the-google-wallet-wall/",
+    "identity": [
+      "title: \"The Google Wallet Wall\"",
+      "date: 2026-06-09",
+      "order: 1",
+      "series: \"android-hardening\"",
+      "reading: \"11 min read\"",
+      "tags: [\"android\", \"attestation\", \"google-wallet\", \"tee\"]"
+    ],
+    "code": "56eb4280a3a4766aac5aca840571dd5d53b727181c38dcba6342391642e6bc5b",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [],
+    "links": [
+      "](https://developer.android.com/google/play/integrity/verdicts",
+      "](https://developer.android.com/privacy-and-security/security-key-attestation",
+      "](https://source.android.com/docs/security/features/verifiedboot"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "ebb4526f0a2d1fbae740f5f874c14d76366e06919974fb3a8b3bf8f97fba1da0"
+  },
+  "en/02-stockmask.md": {
+    "route": "/blog/02-stockmask/",
+    "identity": [
+      "title: \"StockMask: a stock illusion without touching a single app\"",
+      "date: 2026-06-09",
+      "order: 2",
+      "series: \"android-hardening\"",
+      "reading: \"12 min read\"",
+      "tags: [\"android\", \"lsposed\", \"lineageos\", \"system_server\"]"
+    ],
+    "code": "5d5dc2c93a7d9603cc608181dadfaa613f092cb83a28c304c77f785085385b17",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [],
+    "links": [
+      "](https://developer.android.com/reference/android/os/Binder#getCallingUid(",
+      "](https://github.com/LSPosed/LSPosed",
+      "](https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/pm/PackageManagerService.java"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "1b20b196ec5ba7005cbc354803bffe7da09d6f272fe1af11ac440c8afb2837a0"
+  },
+  "en/03-the-logcat-leak.md": {
+    "route": "/blog/03-the-logcat-leak/",
+    "identity": [
+      "title: \"The logcat leak\"",
+      "date: 2026-06-10",
+      "order: 3",
+      "series: \"android-hardening\"",
+      "reading: \"10 min read\"",
+      "tags: [\"android\", \"logcat\", \"read_logs\", \"selinux\"]"
+    ],
+    "code": "384f710e9e92bfe094beb7dae9e0c74ed9798aed106d10bbdb0b3dae1652541a",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [],
+    "links": [
+      "](https://developer.android.com/reference/android/Manifest.permission#READ_LOGS",
+      "](https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/logcat/LogcatManagerService.java"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "fc20bac6e4b79395fcaf92748108385b09c033389b70613ed56f1c4f27360526"
+  },
+  "en/04-auditing-from-the-apps-eyes.md": {
+    "route": "/blog/04-auditing-from-the-apps-eyes/",
+    "identity": [
+      "title: \"Auditing from the app's eyes\"",
+      "date: 2026-06-10",
+      "order: 4",
+      "series: \"android-hardening\"",
+      "reading: \"9 min read\"",
+      "tags: [\"android\", \"selinux\", \"auditing\", \"nsenter\"]"
+    ],
+    "code": "d294c0961b1789ae4396452e645e09dd73c55e9741914930e08c1f70f5dd2012",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [],
+    "links": [
+      "](https://man7.org/linux/man-pages/man1/nsenter.1.html",
+      "](https://source.android.com/docs/security/features/selinux"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "e533a1fa245df5aa0d783208639e88559b5fc1bfac1ef3e8369ed3303d273ed8"
+  },
+  "en/05-what-you-can-and-cant-hide.md": {
+    "route": "/blog/05-what-you-can-and-cant-hide/",
+    "identity": [
+      "title: \"What you can and can't hide\"",
+      "date: 2026-06-10",
+      "order: 5",
+      "series: \"android-hardening\"",
+      "reading: \"10 min read\"",
+      "tags: [\"android\", \"detection\", \"synthesis\", \"rasp\"]"
+    ],
+    "code": "0796686667c21888769bbc17132ab5c66a548a7cca4157e875dbfa6957336113",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [],
+    "links": [
+      "](https://developer.android.com/privacy-and-security/security-key-attestation"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "23a127553c95a59a2f79e2623c852bbbe8760e9a9e9ce14836ec5d9855d2173e"
+  },
+  "en/06-paypal-crash-two-root-signals.md": {
+    "route": "/blog/06-paypal-crash-two-root-signals/",
+    "identity": [
+      "title: \"Debugging a PayPal startup crash: a device-number gap and an App Zygote errno\"",
+      "date: 2026-09-14",
+      "order: 6",
+      "series: \"android-hardening\"",
+      "reading: \"22 min\"",
+      "tags: [\"android\", \"debugging\", \"magisk\", \"selinux\", \"ebpf\", \"kernel\"]"
+    ],
+    "code": "e36d8191c28c591c0d13fef75b3750bb65e11fb57ed87dc9ec22f66ae3c022c0",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [
+      "## Separate the current failure from its historical trigger",
+      "## Turn the aggregate decision into an observable check",
+      "## Establish causality with a one-field offline A/B/A",
+      "## Change the boot sequence that creates the first signal",
+      "## A black screen changed the observation strategy",
+      "## The second signal ran in App Zygote",
+      "## Reproduce the execution context as well as the bytes",
+      "## Keep the denial and normalize a specific error path",
+      "## A successful build is only the start of kernel compatibility",
+      "## Test the kernel separately before combining changes",
+      "## Acceptance includes the rest of the device",
+      "## A runbook for the next recurrence",
+      "## Attachments and provenance"
+    ],
+    "links": [
+      "](https://github.com/topjohnwu/Magisk/tree/e8a58776f1d7bdf852072ad0baa6eceb9a1e4aac/native/src/init",
+      "](/notes/paypal-root-crash-2026-09-14/magisk-mount-order-clean.patch",
+      "](https://developer.android.com/guide/topics/manifest/service-element#isolated",
+      "](https://github.com/LineageOS/android_kernel_xiaomi_sm8550/blob/03e6e48a5b4ed606dfdd48bc782a57f9c778938b/security/selinux/hooks.c",
+      "](https://github.com/LSPosed/DirtySepolicy",
+      "](/notes/paypal-root-crash-2026-09-14/app-zygote-errno.patch",
+      "](https://docs.kernel.org/5.15/admin-guide/module-signing.html",
+      "](/notes/paypal-root-crash-2026-09-14/README.md",
+      "](/notes/paypal-root-crash-2026-09-14/evidence-summary.json",
+      "](/notes/paypal-root-crash-2026-09-14/error-path-tests.txt",
+      "](/notes/paypal-root-crash-2026-09-14/SHA256SUMS.txt"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "330876327da1a799adfd4f4cda248950b81fa53c1ee17e7c0f2012e8ec25049d"
+  },
+  "en/a-control-plane-for-renting-gpus.md": {
+    "route": "/blog/a-control-plane-for-renting-gpus/",
+    "identity": [
+      "title: \"A control plane for renting GPUs\"",
+      "date: 2026-06-10",
+      "order: 1",
+      "series: \"orbit\"",
+      "reading: \"11 min read\"",
+      "tags: [\"llm\", \"infrastructure\", \"training\", \"orbit\", \"reproducibility\"]"
+    ],
+    "code": "b45511188e6b35e26a25328a75ec9ad26dbfa6559ce6512ef1b89a8cf90c10fc",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [
+      "## The Ephemeral Hardware Swamp",
+      "## Decoupling Planning from Execution",
+      "## Concrete Immutability"
+    ],
+    "links": [
+      "](https://github.com/wangtong10086/orbit/blob/main/orbit/core/control/service.py",
+      "](https://github.com/wangtong10086/orbit/blob/main/orbit/core/execution/service.py",
+      "](https://dl.acm.org/doi/10.1145/2741948.2741964"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "5ecd93b81329a4288eb69d64647e19d97b0ba61a52674d51427ceb70d9dcbb4a"
+  },
+  "en/cold-start-then-climb.md": {
+    "route": "/blog/cold-start-then-climb/",
+    "identity": [
+      "title: \"Cold-start, then climb\"",
+      "date: 2026-06-10",
+      "order: 2",
+      "series: \"post-training\"",
+      "reading: \"13 min read\"",
+      "tags: [\"llm\", \"rl\", \"grpo\", \"sft\", \"reasoning\"]"
+    ],
+    "code": "c97f23a719ba055b0b457b1b0ccdb332a4b2c1ec2ac7f2cfe79bb0bee0012b45",
+    "math": "d618dd81f9e69601f4fef969ce1935293f65d3ac30005278c25da90051e1d538",
+    "headings": [
+      "## Why I cold-start before RL: the gradient dictates it",
+      "## My four-step recipe",
+      "## How the two stages map to my code",
+      "## GRPO math in practice",
+      "## The things that bite my runs"
+    ],
+    "links": [
+      "](https://arxiv.org/abs/2501.12948",
+      "](https://github.com/wangtong10086/mixtureofinsights/blob/main/orbit/training/config.py",
+      "](https://arxiv.org/abs/2402.03300",
+      "](https://arxiv.org/abs/2503.20783",
+      "](https://arxiv.org/abs/2503.14476"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "24ad787c9dcf59d49e60d5de46dea050690e1e69c7478e2c24d0a5f27f8cae0a"
+  },
+  "en/dpo-when-you-cant-afford-rlhf.md": {
+    "route": "/blog/dpo-when-you-cant-afford-rlhf/",
+    "identity": [
+      "title: \"DPO when I can't afford RLHF\"",
+      "date: 2026-06-10",
+      "order: 4",
+      "series: \"post-training\"",
+      "reading: \"12 min read\"",
+      "tags: [\"llm\", \"dpo\", \"alignment\", \"preference-data\", \"vllm\"]"
+    ],
+    "code": "d187260ee2ec07fe848298acbbed21425b42195ba40ea43400a2b60930419bbd",
+    "math": "8a3c00653658fffbc850f3726cc70d02897f7697b1516e2d778cd18204f27827",
+    "headings": [
+      "## What I bypass with DPO",
+      "## The derivation I rely on",
+      "## What my gradient is doing",
+      "## The OOC trick I use",
+      "## Serving many characters at once"
+    ],
+    "links": [
+      "](https://arxiv.org/abs/2305.18290",
+      "](https://github.com/wangtong10086/mixtureofinsights/blob/main/orbit/training/dpo_config.py",
+      "](https://arxiv.org/abs/2310.12036",
+      "](https://arxiv.org/abs/2311.03285"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "105dfd4df00351cb7c2384160ccfa276da905d8a75030a63f5fb78134e026314"
+  },
+  "en/how-qwen3-tts-makes-a-frame.md": {
+    "route": "/blog/how-qwen3-tts-makes-a-frame/",
+    "identity": [
+      "title: \"How Qwen3-TTS makes a frame of sound\"",
+      "date: 2026-06-10",
+      "order: 2",
+      "series: \"openvino-tts\"",
+      "reading: \"14 min read\"",
+      "tags: [\"llm\", \"tts\", \"openvino\", \"codec\", \"architecture\"]"
+    ],
+    "code": "e9ded799cf764aa2111a95441c27b8dfeb0813456b74d4c517d99d38ddb878c6",
+    "math": "9de45f7ef6444b8dae6cf38be0e3f87e43960a6f9b502546a58aa1d87a6b25e8",
+    "headings": [
+      "## A frame is a stack, not a token",
+      "## The seam that matters: talker vs subcode",
+      "# Exporting the grouped-query attention seed",
+      "## Streaming chunk sizes"
+    ],
+    "links": [
+      "](https://arxiv.org/abs/2107.03312",
+      "](https://arxiv.org/abs/2209.03143",
+      "](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/native_paged_kv.py",
+      "](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/build_fastest.py"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "7da439271f93b74b74fb934144c25063a7bd6b4053132e316638944068bf842f"
+  },
+  "en/nvim-yank-osc52.md": {
+    "route": "/blog/nvim-yank-osc52/",
+    "identity": [
+      "title: \"Neovim: yank to the system clipboard (OSC 52)\"",
+      "date: 2024-06-16",
+      "order: 6",
+      "",
+      "reading: \"4 min read\"",
+      "tags: [\"neovim\", \"osc52\", \"terminal\"]"
+    ],
+    "code": "05b6e0eea0426d4f05ce676db1ba33b6a3909be37ebc3c5fa0d9fb04b4702008",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [],
+    "links": [
+      "](https://github.com/neovim/neovim/pull/25872"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "868d5a853b6de2e76f5ca3c26d84b81c920f0ad6d297631241c12329c8f92167"
+  },
+  "en/orbit-a-task-agnostic-core.md": {
+    "route": "/blog/orbit-a-task-agnostic-core/",
+    "identity": [
+      "title: \"A task-agnostic core, and plugins that earn their keep\"",
+      "date: 2026-06-10",
+      "order: 2",
+      "series: \"orbit\"",
+      "reading: \"12 min read\"",
+      "tags: [\"llm\", \"infrastructure\", \"architecture\", \"orbit\", \"design\"]"
+    ],
+    "code": "ab96094800b71fe1ff513f1be9e025f994f6d86a363b7f155128c354585c8454",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [
+      "## The Cost of Task-Awareness",
+      "## The Plugin Boundary",
+      "## The Abstraction Cost"
+    ],
+    "links": [
+      "](https://en.wikipedia.org/wiki/Open%E2%80%93closed_principle",
+      "](https://www.win.tue.nl/~wstomv/edu/2ip30/references/criteria_for_modularization.pdf",
+      "](https://github.com/wangtong10086/orbit/blob/main/orbit/core/control/registry.py",
+      "](https://github.com/wangtong10086/orbit/tree/main/orbit/core/execution",
+      "](https://github.com/wangtong10086/orbit/blob/main/orbit/tasks/training/plugin.py"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "75bf1379280a9a71ce449fb8568f5d1b4279de3c99dedb26cc4103880ea3c365"
+  },
+  "en/orbit-the-bundle-is-the-contract.md": {
+    "route": "/blog/orbit-the-bundle-is-the-contract/",
+    "identity": [
+      "title: \"The bundle is the contract\"",
+      "date: 2026-06-10",
+      "order: 3",
+      "series: \"orbit\"",
+      "reading: \"12 min read\"",
+      "tags: [\"llm\", \"infrastructure\", \"observability\", \"orbit\", \"reproducibility\"]"
+    ],
+    "code": "164ae345e36ec803c67b4f4542761380eacb5e3965442df9ea2d480617540d6e",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [
+      "## The Directory Layout",
+      "## Layered Observability",
+      "## Dependency Provenance",
+      "## The Black-Box Integration"
+    ],
+    "links": [
+      "](https://github.com/wangtong10086/orbit/blob/main/orbit/core/execution/bundle.py",
+      "](https://arxiv.org/abs/2003.12206",
+      "](https://papers.nips.cc/paper/5656-hidden-technical-debt-in-machine-learning-systems.pdf"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "fa0d0bfdc85b604fa957ab48add66012df9996abaa7ae882199b832e70fa04b7"
+  },
+  "en/paged-kv-batching-without-vllm.md": {
+    "route": "/blog/paged-kv-batching-without-vllm/",
+    "identity": [
+      "title: \"Paged-KV, U8, and batching where vLLM isn't\"",
+      "date: 2026-06-10",
+      "order: 3",
+      "series: \"openvino-tts\"",
+      "reading: \"14 min read\"",
+      "tags: [\"llm\", \"inference\", \"openvino\", \"kv-cache\", \"batching\"]"
+    ],
+    "code": "32de82ab8f503cd81ab190d5387a30cdd75ce1938b72c3d2aff7e99e509dbc52",
+    "math": "863cc1a487a1921e968c7e02234fcc1bfcaa5b3477b0ee92131fdd45b78a5334",
+    "headings": [
+      "## 1. Paged-KV over fixed buckets",
+      "## 2. U8 KV Cache quantization",
+      "## 3. Full-context execution",
+      "## 4. Online batching in the scheduler",
+      "# Check output conditions, evict if finished"
+    ],
+    "links": [
+      "](https://arxiv.org/abs/2309.06180",
+      "](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/cli.py",
+      "](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/online_batch.py",
+      "](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/scripts/compress_openvino_weights.py"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "eea138f09503b13b524d27a20f045d02b46182e722282f9bd845933eef0de0f3"
+  },
+  "en/post-training-is-a-data-problem.md": {
+    "route": "/blog/post-training-is-a-data-problem/",
+    "identity": [
+      "title: \"Post-training is a data problem\"",
+      "date: 2026-06-10",
+      "order: 1",
+      "series: \"post-training\"",
+      "reading: \"12 min read\"",
+      "tags: [\"llm\", \"post-training\", \"synthetic-data\", \"rejection-sampling\"]"
+    ],
+    "code": "93f23e55e69ae928ecea0bd846e9aadc9740cd32a780c9dedee9f2e2e02f7525",
+    "math": "a048cfdd4528494cb946624f1348c17458f4468239886568eb908e501c1a954c",
+    "headings": [
+      "## The Generation Engines",
+      "## The Yield Flywheel"
+    ],
+    "links": [
+      "](https://github.com/wangtong10086/orbit/tree/main/orbit/data/",
+      "](https://github.com/wangtong10086/orbit/blob/main/orbit/data/liveweb_teacher_gen.py",
+      "](https://github.com/wangtong10086/orbit/blob/main/orbit/data/game_gen.py",
+      "](https://arxiv.org/abs/2307.09288",
+      "](https://github.com/wangtong10086/orbit/blob/main/orbit/verifiers/static.py"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "9c18d096430a9f7349a7bfd8da2dbe95018ce8e1f612ad2741d29416e46f2145"
+  },
+  "en/self-play-and-the-games-models-teach-themselves.md": {
+    "route": "/blog/self-play-and-the-games-models-teach-themselves/",
+    "identity": [
+      "title: \"Self-play, and the games my models teach themselves\"",
+      "date: 2026-06-10",
+      "order: 5",
+      "series: \"post-training\"",
+      "reading: \"13 min read\"",
+      "tags: [\"llm\", \"self-play\", \"game-playing\", \"openspiel\", \"rejection-sampling\"]"
+    ],
+    "code": "cf23935798c2f65796494c3faca269bc25a938a0cd3f676f6e3691be5a0123c1",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [
+      "## My setup: OpenSpiel games as a strategy generator",
+      "## Why self-play hands me infinite data",
+      "# Hard filter, reject losing games",
+      "## Self-play is my automatic curriculum",
+      "## What I align"
+    ],
+    "links": [
+      "](https://github.com/google-deepmind/open_spiel",
+      "](https://github.com/wangtong10086/mixtureofinsights/blob/main/orbit/data/game_trajectory_generators.py",
+      "](https://papers.nips.cc/paper/2007/hash/08d98638c6fcd194a4b1e6992063e944-Abstract.html",
+      "](https://arxiv.org/abs/1712.01815",
+      "](https://www.nature.com/articles/s41586-019-1724-z"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "b84cf4cb2468d227eeeae3b3126192f26efbe2963d9bb05ff349783e89153c4c"
+  },
+  "en/what-are-you-rewarding.md": {
+    "route": "/blog/what-are-you-rewarding/",
+    "identity": [
+      "title: \"What am I actually rewarding?\"",
+      "date: 2026-06-10",
+      "order: 3",
+      "series: \"post-training\"",
+      "reading: \"13 min read\"",
+      "tags: [\"llm\", \"rl\", \"reward-model\", \"rlvr\", \"reward-hacking\"]"
+    ],
+    "code": "1d8644aa640e1b0cce08d32a5041b89012f4e47be8b11f64954a94645ae475d1",
+    "math": "bfb4106fec2f80d7d1f278606d01b430fbf773b6298ac188f135a86da71a96c8",
+    "headings": [
+      "## Two kinds of reward, and when I use which",
+      "## What my verifier actually is in code",
+      "## Over-optimization has a scaling law",
+      "## How I close the gap"
+    ],
+    "links": [
+      "](https://arxiv.org/abs/1803.04585",
+      "](https://deepmindsafetyresearch.medium.com/specification-gaming-the-flip-side-of-ai-ingenuity-c85bdb0deeb4",
+      "](https://arxiv.org/abs/2201.03544",
+      "](https://github.com/wangtong10086/mixtureofinsights/blob/main/orbit/verifiers/base.py",
+      "](https://github.com/wangtong10086/mixtureofinsights/blob/main/orbit/verifiers/static.py",
+      "](https://arxiv.org/abs/2210.10760"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "ba298ccf8d72f4df4e9f06067fd56f9c0efeb3640ae53719e3c258ba8c6c3195"
+  },
+  "en/when-the-gpu-isnt-an-nvidia.md": {
+    "route": "/blog/when-the-gpu-isnt-an-nvidia/",
+    "identity": [
+      "title: \"When the GPU isn't an NVIDIA\"",
+      "date: 2026-06-10",
+      "order: 1",
+      "series: \"openvino-tts\"",
+      "reading: \"14 min read\"",
+      "tags: [\"llm\", \"inference\", \"openvino\", \"tts\", \"edge\"]"
+    ],
+    "code": "b3d192f4bc0a23f9e0a025e1eb6b397cecacb6def2394b5c404262a6d993175d",
+    "math": "1d590ed5673b9b490a3a113ae95e9f364a28a3fb6092ab1c2ee579c2c2b14fd9",
+    "headings": [
+      "## The missing primitives",
+      "## The bandwidth wall",
+      "## Hardware layout and caching",
+      "## Real-Time Factor"
+    ],
+    "links": [
+      "](https://arxiv.org/abs/2205.14135",
+      "](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/runtime.py"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "6759d6a720f7150f1dc8f9c1ed2ada5d6f52fb62277b78355b8bcd002fca2f8f"
+  },
+  "zh/01-the-google-wallet-wall.md": {
+    "route": "/zh/blog/01-the-google-wallet-wall/",
+    "identity": [
+      "title: \"Google Wallet 不是 Play Integrity 那一关\"",
+      "date: 2026-06-09",
+      "order: 1",
+      "series: \"android-hardening\"",
+      "reading: \"8 分钟\"",
+      "tags: [\"android\", \"attestation\", \"google-wallet\", \"tee\"]"
+    ],
+    "code": "d2e65f872c7a4e226aedd97797d8859bf3a758155ed8e818d261c7c4ca6322e9",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [],
+    "links": [
+      "](https://developer.android.com/privacy-and-security/security-key-attestation"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "c34225b2d8690380085f9e53a23c9c20be7465e8ac28486be1252080c27381ba"
+  },
+  "zh/02-stockmask.md": {
+    "route": "/zh/blog/02-stockmask/",
+    "identity": [
+      "title: \"StockMask：不碰 App，也能造一层原厂感\"",
+      "date: 2026-06-09",
+      "order: 2",
+      "series: \"android-hardening\"",
+      "reading: \"12 分钟\"",
+      "tags: [\"android\", \"lsposed\", \"lineageos\", \"system_server\"]"
+    ],
+    "code": "40180ec316f1bf1801b66a31a104e2df6603de25fb8fe09a7060fc8d07eb673e",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [],
+    "links": [
+      "](https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/core/java/android/app/ApplicationPackageManager.java",
+      "](https://github.com/wangtong10086/mixtureofinsights/blob/main/code/stockmask/src/com/stockmask/Main.java",
+      "](https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/core/java/android/content/pm/ParceledListSlice.java"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "7e899124d1b55fb47c1807f91fa6aa6e958b2b5433f66ef6c4278d63a81f6e8d"
+  },
+  "zh/03-the-logcat-leak.md": {
+    "route": "/zh/blog/03-the-logcat-leak/",
+    "identity": [
+      "title: \"十五个 App 正在读整台设备的日志\"",
+      "date: 2026-06-10",
+      "order: 3",
+      "series: \"android-hardening\"",
+      "reading: \"8 分钟\"",
+      "tags: [\"android\", \"logcat\", \"read_logs\", \"selinux\"]"
+    ],
+    "code": "478b1aee402bbe8662709bc8491011f9f7b5ee71de8c6a2005517d394cc30c49",
+    "math": "ba1129587c321f83c19ee0c14745aa4418734c6acec436c902caf0edaa1b7eb8",
+    "headings": [],
+    "links": [
+      "](https://developer.android.com/reference/android/Manifest.permission#READ_LOGS",
+      "](https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/logcat/LogcatManagerService.java"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "f269eff78a43453ea153ec286613404bc1dd7575f7f0948c58d0a17019a10c37"
+  },
+  "zh/04-auditing-from-the-apps-eyes.md": {
+    "route": "/zh/blog/04-auditing-from-the-apps-eyes/",
+    "identity": [
+      "title: \"别用 adb shell 代替 App 的眼睛\"",
+      "date: 2026-06-10",
+      "order: 4",
+      "series: \"android-hardening\"",
+      "reading: \"9 分钟\"",
+      "tags: [\"android\", \"selinux\", \"auditing\", \"nsenter\"]"
+    ],
+    "code": "8227beddbdeb4a3597457c66c37790fdb17cc4742931b2a2c52e0b832b3b1429",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [],
+    "links": [
+      "](https://source.android.com/docs/security/features/selinux"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "598b7d6d1a6d0580a71bce7823e6b6d73d3fa852238f57f1de7e4c3a9996596c"
+  },
+  "zh/05-what-you-can-and-cant-hide.md": {
+    "route": "/zh/blog/05-what-you-can-and-cant-hide/",
+    "identity": [
+      "title: \"一台 root 手机能藏住什么\"",
+      "date: 2026-06-10",
+      "order: 5",
+      "series: \"android-hardening\"",
+      "reading: \"10 分钟\"",
+      "tags: [\"android\", \"detection\", \"synthesis\", \"rasp\"]"
+    ],
+    "code": "5c2b0da9c5b932f8f0e6e027dee208d6ebcb1b8e722dec72efb12be7a7ed699c",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [],
+    "links": [],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "152cd08cc4434cd30a5c2f81c156b8a967868a3e6df563d6306803178bb0eac7"
+  },
+  "zh/06-paypal-crash-two-root-signals.md": {
+    "route": "/zh/blog/06-paypal-crash-two-root-signals/",
+    "identity": [
+      "title: \"PayPal 闪退复盘：从一个设备号缺口追到 App Zygote 的 SELinux 错误码\"",
+      "date: 2026-09-14",
+      "order: 6",
+      "series: \"android-hardening\"",
+      "reading: \"25 分钟\"",
+      "tags: [\"android\", \"debugging\", \"magisk\", \"selinux\", \"ebpf\", \"kernel\"]"
+    ],
+    "code": "8bef91c75437eba13aeb6fd90bb84e38dfbc7f287f6d59aa1b457fb8e4936151",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [
+      "## 先界定问题：现在为什么失败，与以前为什么能用",
+      "## 把总结果拆成可观察的检测项",
+      "## 第一条因果证据：只改一个字段的离线 A/B/A",
+      "## 第一处修复：调整产生差异的启动顺序",
+      "## 一次黑屏：观测手段也会改变系统",
+      "## 第二条证据：真正执行探测的是 App Zygote",
+      "## 独立 APK：复现相同字节，也复现相同执行环境",
+      "## 第二处修复：保留拒绝，只统一指定路径的错误码",
+      "## 编译成功之后，还要跨过模块兼容性",
+      "## 实机验证分两步，避免同时移动所有变量",
+      "## 最终验收：设备可用性也属于结果",
+      "## 留给下一次的定位顺序",
+      "## 附件与证据说明"
+    ],
+    "links": [
+      "](https://github.com/topjohnwu/Magisk/tree/e8a58776f1d7bdf852072ad0baa6eceb9a1e4aac/native/src/init",
+      "](/notes/paypal-root-crash-2026-09-14/magisk-mount-order-clean.patch",
+      "](https://developer.android.com/guide/topics/manifest/service-element#isolated",
+      "](https://github.com/LineageOS/android_kernel_xiaomi_sm8550/blob/03e6e48a5b4ed606dfdd48bc782a57f9c778938b/security/selinux/hooks.c",
+      "](https://github.com/LSPosed/DirtySepolicy",
+      "](/notes/paypal-root-crash-2026-09-14/app-zygote-errno.patch",
+      "](https://docs.kernel.org/5.15/admin-guide/module-signing.html",
+      "](/notes/paypal-root-crash-2026-09-14/README.md",
+      "](/notes/paypal-root-crash-2026-09-14/evidence-summary.json",
+      "](/notes/paypal-root-crash-2026-09-14/error-path-tests.txt",
+      "](/notes/paypal-root-crash-2026-09-14/SHA256SUMS.txt"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "e0fb60796b52969f37e3055ca75c0fd086c6f3b1d2c24fed587796d2fc0251fc"
+  },
+  "zh/a-control-plane-for-renting-gpus.md": {
+    "route": "/zh/blog/a-control-plane-for-renting-gpus/",
+    "identity": [
+      "title: \"租 GPU 的控制面\"",
+      "date: 2026-06-10",
+      "order: 1",
+      "series: \"orbit\"",
+      "reading: \"11 分钟\"",
+      "tags: [\"llm\", \"infrastructure\", \"training\", \"orbit\", \"reproducibility\"]"
+    ],
+    "code": "ecf810fff93716ee4a4fd560deeb9800da524634b09d2c57e9afbb39fb6cf860",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [
+      "## 瓶颈剖析：没有身份的副作用",
+      "## 架构重组：剥离规划与执行",
+      "## 硬核落地：消除隐藏分支的模板化执行"
+    ],
+    "links": [
+      "](https://www.microsoft.com/en-us/research/publication/hints-for-computer-system-design/",
+      "](https://sre.google/sre-book/introduction/",
+      "](https://github.com/wangtong10086/mixtureofinsights/blob/main/src/orbit/core/control",
+      "](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/architecture/architecture.md"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "70ad2c888b5d7d90d4f53c8f42e3a62ae269ceff328164f1c8cc695c1784f495"
+  },
+  "zh/cold-start-then-climb.md": {
+    "route": "/zh/blog/cold-start-then-climb/",
+    "identity": [
+      "title: \"先冷启动，再让 RL 往上爬\"",
+      "date: 2026-06-10",
+      "order: 2",
+      "series: \"post-training\"",
+      "reading: \"13 分钟\"",
+      "tags: [\"llm\", \"rl\", \"grpo\", \"sft\", \"reasoning\"]"
+    ],
+    "code": "c07bf74a2aff81e560521a258cb6a96ba5f6bac893233040044aff61cf650bdc",
+    "math": "52e088eefb84126dfada48672e5c977dcb2f73d6521f3d02a45b6fb0358fd26b",
+    "headings": [
+      "## 梯度的物理实在",
+      "## R1 范式的代码投影",
+      "## 剥离 Critic：GRPO 的降本增效",
+      "## 监控指标的底层逻辑"
+    ],
+    "links": [
+      "](https://arxiv.org/abs/2501.12948",
+      "](https://github.com/wangtong10086/orbit/blob/main/orbit/training/config.py",
+      "](https://github.com/wangtong10086/orbit/blob/main/orbit/training/sft.py",
+      "](https://arxiv.org/abs/2402.03300",
+      "](https://arxiv.org/abs/2503.20783",
+      "](https://arxiv.org/abs/2503.14476"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "19baa43f1154a9f08576b43f322eff80dc6612c831addca92d04a99ad06db77f"
+  },
+  "zh/dpo-when-you-cant-afford-rlhf.md": {
+    "route": "/zh/blog/dpo-when-you-cant-afford-rlhf/",
+    "identity": [
+      "title: \"算力不够上 RLHF，就把 DPO 用对\"",
+      "date: 2026-06-10",
+      "order: 4",
+      "series: \"post-training\"",
+      "reading: \"12 分钟\"",
+      "tags: [\"llm\", \"dpo\", \"alignment\", \"preference-data\", \"vllm\"]"
+    ],
+    "code": "45a8f982111f8512bae7ed4726082b113f8382af8087e1b37ffe7c6ed172e838",
+    "math": "3a0f21a355955d0c913f58c00ee11d5e7a4b1fac21dcd143fd957480b14bfd6f",
+    "headings": [
+      "## 数学折叠：隐式奖励的推导",
+      "## 代码注入与 TRL 适配",
+      "## 梯度欺骗：绝对似然下沉",
+      "## 变量控制与飞轮构造",
+      "## 异构部署：S-LoRA 的并发解法"
+    ],
+    "links": [
+      "](https://arxiv.org/abs/2305.18290",
+      "](https://arxiv.org/abs/2310.12036",
+      "](https://arxiv.org/abs/2311.03285"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "77161c24eec6729c70e472bfd1ac444943f979066d632c65d8605835ccf0d9d6"
+  },
+  "zh/how-qwen3-tts-makes-a-frame.md": {
+    "route": "/zh/blog/how-qwen3-tts-makes-a-frame/",
+    "identity": [
+      "title: \"拆解 Qwen3-TTS：OpenVINO 移植过程中的图分离与调度实践\"",
+      "date: 2026-06-10",
+      "order: 2",
+      "series: \"openvino-tts\"",
+      "reading: \"38 分钟\"",
+      "tags: [\"llm\", \"tts\", \"openvino\", \"codec\", \"architecture\", \"ultra-x7\"]"
+    ],
+    "code": "949df255249bf71f5647bcd6d73ab22bb847d0e71fd65d1d8639f6a787b72e06",
+    "math": "df761969a34b4b9400d56038ea64f43b99d4ea4fa6d3bae856db90b44a76e01c",
+    "headings": [
+      "## 1. 症结所在：多码本 RVQ 带来的计算冗余",
+      "### RVQ 的层级逻辑",
+      "### O(n^2) 算力灾难",
+      "## 2. 代码级图分离：面向计算形状的解耦",
+      "### 2.1 剥离重型 Talker：注入 Paged-KV",
+      "### 2.2 导出极速的 Subcode 缓存图",
+      "# qwen3_tts_ov/exporter.py 拆图核心实现",
+      "## 3. 流式解码挑战：首音延迟（TTFT）与左侧上下文的博弈",
+      "### 撕裂的音频与上下文约束",
+      "### 3.1 解决方案：非对称块调度 (Asymmetric Chunk Scheduling)",
+      "# qwen3_tts_ov/build_fastest.py 参数定义",
+      "## 4. 落地：C++ 接管调度大权",
+      "## 5. 总结"
+    ],
+    "links": [
+      "](/zh/blog/when-the-gpu-isnt-an-nvidia/",
+      "](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/exporter.py",
+      "](https://arxiv.org/abs/2107.03312",
+      "](https://arxiv.org/abs/2210.13438",
+      "](https://arxiv.org/abs/2209.03143",
+      "](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/exporter.py",
+      "](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/build_fastest.py",
+      "](/zh/blog/paged-kv-batching-without-vllm/"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "88585c83d1ffffca34b4c87b23cc1541a897ee3ca3a80b24d3da3607badb7647"
+  },
+  "zh/nvim-yank-osc52.md": {
+    "route": "/zh/blog/nvim-yank-osc52/",
+    "identity": [
+      "title: \"Neovim：用 OSC 52 穿越终端剪贴板屏障\"",
+      "date: 2024-06-16",
+      "order: 6",
+      "",
+      "reading: \"4 分钟\"",
+      "tags: [\"neovim\", \"osc52\", \"terminal\"]"
+    ],
+    "code": "ee77a697c8c3a46ecf96018a82213df6f3bab916b4d2abbc72c478f783d99ccd",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [
+      "## OSC 52 的通信机制",
+      "## 寄存器与转义层的映射"
+    ],
+    "links": [
+      "](https://github.com/neovim/neovim/pull/25872",
+      "](https://www.reddit.com/r/vim/comments/k1ydpn/a_guide_on_how_to_copy_text_from_anywhere/",
+      "](https://www.reddit.com/r/neovim/comments/188smrx/how_do_i_use_osc52_in_neovim100/",
+      "](https://github.com/neovim/neovim/issues/28611"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "2f6ad9b9e6ca760495e1197aabe8923e2a56d779e6a8df0dfe3795243626b6e2"
+  },
+  "zh/orbit-a-task-agnostic-core.md": {
+    "route": "/zh/blog/orbit-a-task-agnostic-core/",
+    "identity": [
+      "title: \"ORBIT 的内核为什么不懂任务\"",
+      "date: 2026-06-10",
+      "order: 2",
+      "series: \"orbit\"",
+      "reading: \"12 分钟\"",
+      "tags: [\"llm\", \"infrastructure\", \"architecture\", \"orbit\", \"design\"]"
+    ],
+    "code": "38087c4908a0efd715a39956b5d175216d8a97d625208bbaab1474c8659ee7e2",
+    "math": "6be389843dbba2bebdd52daf8e1c119ea5517fc5d76d7f830af3c1176d7acd37",
+    "headings": [
+      "## 瓶颈剖析：执行器的认知诅咒",
+      "## 架构重组：任务不可知的通用核",
+      "## 结果证明：用模板镇压分支地狱"
+    ],
+    "links": [
+      "](https://en.wikipedia.org/wiki/Open%E2%80%93closed_principle",
+      "](https://www.win.tue.nl/~wstomv/edu/2ip30/references/criteria_for_modularization.pdf",
+      "](https://github.com/wangtong10086/mixtureofinsights/blob/main/src/orbit/core/control/registry.py",
+      "](https://github.com/wangtong10086/mixtureofinsights/blob/main/src/orbit/tasks/training/plugin.py",
+      "](https://www.joelonsoftware.com/2002/11/11/the-law-of-leaky-abstractions/"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "0a73dce8f457ef3ecf579528ecee0fb5e8a411dbb5aca0a98b065df771c99c30"
+  },
+  "zh/orbit-the-bundle-is-the-contract.md": {
+    "route": "/zh/blog/orbit-the-bundle-is-the-contract/",
+    "identity": [
+      "title: \"bundle 即契约\"",
+      "date: 2026-06-10",
+      "order: 3",
+      "series: \"orbit\"",
+      "reading: \"12 分钟\"",
+      "tags: [\"llm\", \"infrastructure\", \"observability\", \"orbit\", \"reproducibility\"]"
+    ],
+    "code": "8a46b6fab8de945daa3b47d520ceaa62d286329373a1c4e1e29e052b40bfe06c",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [
+      "## 瓶颈：薛定谔的依赖环境",
+      "## 架构重组：固定目录拓扑与分层日志",
+      "## 原理推演：精准的来路记录 (Provenance)",
+      "## 硬核落地：放弃修改的权力"
+    ],
+    "links": [
+      "](https://papers.nips.cc/paper/5656-hidden-technical-debt-in-machine-learning-systems.pdf",
+      "](https://github.com/wangtong10086/mixtureofinsights/blob/main/src/orbit/core/execution/bundle.py",
+      "](https://github.com/wangtong10086/mixtureofinsights/blob/main/src/orbit/integrations/affinetes_swe",
+      "](https://se.inf.ethz.ch/~meyer/publications/computer/contract.pdf",
+      "](https://www.cs.mcgill.ca/~jpineau/ReproducibilityChecklist.pdf"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "fd8596c901f68a3b3ec0568bcadbc165d4194eefcca638f3360b2981500d3860"
+  },
+  "zh/paged-kv-batching-without-vllm.md": {
+    "route": "/zh/blog/paged-kv-batching-without-vllm/",
+    "identity": [
+      "title: \"无 vLLM 环境下的 Paged-KV 与连续批处理调度\"",
+      "date: 2026-06-10",
+      "order: 3",
+      "series: \"openvino-tts\"",
+      "reading: \"42 分钟\"",
+      "tags: [\"llm\", \"inference\", \"openvino\", \"kv-cache\", \"batching\", \"ultra-x7\"]"
+    ],
+    "code": "2cfe63c6c10ac281d1bac113819cf1d0317ebed42a1f3e7dd1ab7d7a18f7a93d",
+    "math": "cbbf244f13ab2dcb6d23b20483f9b345e0270649403f44633b4dc10eda43e873",
+    "headings": [
+      "## 1. 内存碎片之殇：Fixed Cache vs Paged-KV",
+      "### 1.1 灾难性的“固定桶”方案",
+      "### 1.2 引入操作系统的智慧：Paged-KV",
+      "### 1.3 底层 C++ 劫持算子",
+      "## 2. 突破带宽天际线：极限 U8 缓存量化",
+      "# 强制开启底层 U8 缓存量化",
+      "## 3. Python 锁外的战役：连续批处理调度器",
+      "### 3.1 调度机制大解剖",
+      "# OnlineBatchScheduler _loop 核心调度源码"
+    ],
+    "links": [
+      "](/zh/blog/how-qwen3-tts-makes-a-frame/",
+      "](https://arxiv.org/abs/2309.06180",
+      "](https://www.usenix.org/conference/osdi22/presentation/yu",
+      "](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/online_batch.py"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "89e2f6a84ae648369d1079f75a4cb274562bed7826189cd30a793d47138738ad"
+  },
+  "zh/post-training-is-a-data-problem.md": {
+    "route": "/zh/blog/post-training-is-a-data-problem/",
+    "identity": [
+      "title: \"后训练是个数据问题\"",
+      "date: 2026-06-10",
+      "order: 1",
+      "series: \"post-training\"",
+      "reading: \"13 分钟\"",
+      "tags: [\"llm\", \"post-training\", \"synthetic-data\", \"rejection-sampling\"]"
+    ],
+    "code": "1b412cf2d6323b4bdca989c8e23025c0a94919f0472d9be6ea0a957c98492106",
+    "math": "4fde971480246aec0b610a666e352cc4deaaa06b8ea7c903669023688e005d9c",
+    "headings": [
+      "## 架构重组：四台数据引擎的咬合",
+      "## 原理推演：飞轮效应的物理方程",
+      "## 硬核落地：把工程预算砸向验证器"
+    ],
+    "links": [
+      "](https://github.com/wangtong10086/mixtureofinsights/blob/main/src/orbit/data/liveweb_teacher_gen.py",
+      "](https://arxiv.org/abs/2507.02592",
+      "](https://arxiv.org/abs/2307.09288",
+      "](https://github.com/wangtong10086/mixtureofinsights/blob/main/src/orbit/verifiers/static.py",
+      "](https://arxiv.org/abs/2212.08073",
+      "](https://arxiv.org/abs/2203.14465"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "c04715419d2406ee28868d84c90c0960afa88e5aa5fae2cf2c3ed40da4594058"
+  },
+  "zh/self-play-and-the-games-models-teach-themselves.md": {
+    "route": "/zh/blog/self-play-and-the-games-models-teach-themselves/",
+    "identity": [
+      "title: \"自我博弈：让模型从游戏里捞数据\"",
+      "date: 2026-06-10",
+      "order: 5",
+      "series: \"post-training\"",
+      "reading: \"13 分钟\"",
+      "tags: [\"llm\", \"self-play\", \"game-playing\", \"openspiel\", \"rejection-sampling\"]"
+    ],
+    "code": "606b0d6883bf664274e32e2c1b6224fa43152191dad791a59acea2581084b546",
+    "math": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "headings": [
+      "## OpenSpiel 策略生成矩阵",
+      "## 零成本验证器与拒绝采样",
+      "## 平稳性破裂与种群防御",
+      "## 信号收敛与架构归宿"
+    ],
+    "links": [
+      "](https://github.com/google-deepmind/open_spiel",
+      "](https://github.com/wangtong10086/orbit/blob/main/orbit/data/game_trajectory_generators.py",
+      "](https://github.com/wangtong10086/orbit/blob/main/orbit/data/game_generators/search_generators.py",
+      "](https://github.com/wangtong10086/orbit/blob/main/orbit/data/game_generators/policy_generators.py",
+      "](https://papers.nips.cc/paper/2007/hash/08d98638c6fcd194a4b1e6992063e944-Abstract.html",
+      "](https://www.nature.com/articles/s41586-019-1724-z",
+      "](https://arxiv.org/abs/1712.01815"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "5c98eb54ef3425b1fb01e7ab7089a58e80b55a5f49e3eed65b9f6197109b453e"
+  },
+  "zh/what-are-you-rewarding.md": {
+    "route": "/zh/blog/what-are-you-rewarding/",
+    "identity": [
+      "title: \"你到底在奖励什么?\"",
+      "date: 2026-06-10",
+      "order: 3",
+      "series: \"post-training\"",
+      "reading: \"13 分钟\"",
+      "tags: [\"llm\", \"rl\", \"reward-model\", \"rlvr\", \"reward-hacking\"]"
+    ],
+    "code": "269ad03e88c05939fbcf527989eaff5ae8594f6ddba3a9555e6bb44666cf0a44",
+    "math": "2d0490d2258109a3675143bb4a3534cf3bb1034da02fb4a69ebe2dffee3dbdd9",
+    "headings": [
+      "## 两种奖励与物理隔离",
+      "## 代码里的验证器实现",
+      "## 奖励崩溃的缩放律",
+      "## 缝隙的闭环策略"
+    ],
+    "links": [
+      "](https://en.wikipedia.org/wiki/Goodhart%27s_law",
+      "](https://arxiv.org/abs/1803.04585",
+      "](https://github.com/wangtong10086/orbit/blob/main/orbit/verifiers/base.py",
+      "](https://github.com/wangtong10086/orbit/blob/main/orbit/verifiers/static.py",
+      "](https://deepmindsafetyresearch.medium.com/specification-gaming-the-flip-side-of-ai-ingenuity-c85bdb0deeb4",
+      "](https://arxiv.org/abs/2210.10760",
+      "](https://arxiv.org/abs/2201.03544"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "445b0f76027ebcf478102b9e5c31229a784785e3cc85b3a507c4093ebf0ae295"
+  },
+  "zh/when-the-gpu-isnt-an-nvidia.md": {
+    "route": "/zh/blog/when-the-gpu-isnt-an-nvidia/",
+    "identity": [
+      "title: \"离开 N 卡后的真实世界：Ultra x7 358h 平台上的 TTS 推理框架重构\"",
+      "date: 2026-06-10",
+      "order: 1",
+      "series: \"openvino-tts\"",
+      "reading: \"35 分钟\"",
+      "tags: [\"llm\", \"inference\", \"openvino\", \"tts\", \"edge\", \"ultra-x7\"]"
+    ],
+    "code": "614731ee406a87854fc383db1f387af5bfb86615ba2a572d944e44a13a04d475",
+    "math": "cdec07e8e9adeb1d3b5cecc595cfcb79f3c981257e93751b12573557723bceef",
+    "headings": [
+      "## 1. 硬件地基：Ultra x7 358h 的异构战场",
+      "## 2. 剥离幻觉：CUDA 生态到底把什么“藏”了起来？",
+      "### vLLM 在 CUDA 上的黑魔法",
+      "### OpenVINO 的“贫瘠”现实",
+      "## 3. 算力突围：洞穿“内存带宽”的物理法则 (算子与代码级优化)",
+      "### 3.1 算术强度的无情铁律",
+      "### 3.2 算子级优化：INT8 对称量化",
+      "# scripts/compress_openvino_weights.py 核心片段",
+      "### 3.3 框架级优化：重构连续批处理器（Continuous Batching）",
+      "## 4. 驯服显存巨兽：手工锻造 Paged-KV (框架层实践)",
+      "### 4.1 注入 PagedAttention 算子",
+      "### 4.2 极限榨取：U8 KV 缓存量化",
+      "## 5. 异构调度：将 NPU 拉入战场 (平台级优化)",
+      "# 运行时异构配置逻辑简述"
+    ],
+    "links": [
+      "](https://arxiv.org/abs/2205.14135",
+      "](https://arxiv.org/abs/2309.06180",
+      "](https://www.usenix.org/conference/osdi22/presentation/yu",
+      "](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/scripts/compress_openvino_weights.py",
+      "](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/online_batch.py",
+      "](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/native/qwen3_tts_ov_genai/qwen3_tts_codegen.cpp",
+      "](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/npu_offload_profile.py",
+      "](/zh/blog/how-qwen3-tts-makes-a-frame/",
+      "](/zh/blog/how-qwen3-tts-makes-a-frame/"
+    ],
+    "figures": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "body": "01dc406788915094f1bf18f9bf275f499eaa4eb5f01bb7ee31e2fd7017f5d029"
+  }
+}

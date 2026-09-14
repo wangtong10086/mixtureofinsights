@@ -1,6 +1,6 @@
 ---
 title: "The bundle is the contract"
-description: "When a rented machine evaporates, the only evidence left is what you collected. I enforced a strict directory contract for bundles to ensure exact dependency provenance and runtime observability."
+description: "The ORBIT bundle layout: where run state, prechecks, logs, and artifacts live, and how pinned dependencies make a completed run easier to inspect."
 date: 2026-06-10
 order: 3
 series: "orbit"
@@ -8,13 +8,13 @@ reading: "12 min read"
 tags: ["llm", "infrastructure", "observability", "orbit", "reproducibility"]
 ---
 
-The task-agnostic core passes a bundle to the runtime. The bundle is a frozen interface. On an ephemeral GPU, there is no interactive debug session; the host terminates. The bundle must be self-describing.
+The execution core passes a bundle to the runtime. Once a rented GPU host terminates, I can't return to it for an interactive debugging session, so the bundle must preserve enough information to explain the run.
 
-The control plane generates a bundle. The execution plane consumes it and populates output. Because the contract is mapped to a physical directory layout, it outlives both the control process and the execution host. 
+The control plane generates a bundle. The execution plane consumes it and populates output. Because the contract is mapped to a physical directory layout, it outlives both the control process and the execution host.
 
 ## The Directory Layout
 
-In [`orbit/core/execution/bundle.py`](https://github.com/wangtong10086/orbit/blob/main/orbit/core/execution/bundle.py), I explicitly define the filesystem taxonomy:
+In [`orbit/core/execution/bundle.py`](https://github.com/wangtong10086/orbit/blob/main/orbit/core/execution/bundle.py), the directory structure is defined in code:
 
 ```python
 def ensure_structure(self) -> None:
@@ -33,7 +33,7 @@ bundle/
  `-- artifacts/    (task logs, checkpoints, NVML snapshots)
 ```
 
-`manifest.json` lives under `artifacts/`, isolating remote workload outputs from local control metadata in `runtime/`. 
+`manifest.json` lives under `artifacts/`, isolating remote workload outputs from local control metadata in `runtime/`.
 
 ## Layered Observability
 
@@ -49,7 +49,7 @@ The `nvml_gpu_audit.py` script running in the background snapshots utilization e
 
 ## Dependency Provenance
 
-On rented machines, the Python environment is hostile and uncontrolled. I write a `runtime-precheck.log` to explicitly dump the exact resolved path and version of the critical dependency:
+I don't control the Python environment on rented machines. Before the workload runs, `runtime-precheck.log` records the resolved path and version of its critical dependency:
 
 ```python
 import swift
@@ -61,7 +61,7 @@ If I am injecting my fork, the precheck parses `FORK_MANIFEST.json`. This proves
 
 ## The Black-Box Integration
 
-Integrating upstream components—like `affinetes`—requires ruthless isolation. I built the `orbit/integrations/affinetes_swe` module around these rules:
+For upstream components such as `affinetes`, I keep the integration separate from the upstream implementation. `orbit/integrations/affinetes_swe` follows these rules:
 
 ```text
 +-------------------------+             +-----------------------------+
@@ -74,7 +74,7 @@ Integrating upstream components—like `affinetes`—requires ruthless isolation
 +-------------------------+             +-----------------------------+
 ```
 
-I enforce a 40-character commit hash via regex. 
+I enforce a 40-character commit hash via regex.
 
 ```python
 _COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -86,8 +86,8 @@ def _require_exact_ref(ref: str) -> str:
     return normalized
 ```
 
-I also run `git status --porcelain` and kill the execution if the tree is dirty. This completely bypasses the pipeline jungles common in unstructured orchestrations ([Sculley et al., 2015](https://papers.nips.cc/paper/5656-hidden-technical-debt-in-machine-learning-systems.pdf)).
+I also run `git status --porcelain` and kill the execution if the tree is dirty. This avoids the pipeline-jungle problem in unstructured orchestration ([Sculley et al., 2015](https://papers.nips.cc/paper/5656-hidden-technical-debt-in-machine-learning-systems.pdf)).
 
 I interact with the upstream `InfiniteActor.evaluate()` purely as a black box. If I need a bridge for interactive synthesis, I spin up a Unix socket server without mutating upstream semantics. Any attempt to fork and "fix" the upstream logic permanently severs comparability with external benchmarks.
 
-I persist only a thin ORBIT manifest (`schema_version: affinetes_swe_blackbox_run.v1`) alongside the raw upstream artifacts. The bundle exists solely to encapsulate the run in a frozen, undeniable state.
+I persist only a thin ORBIT manifest (`schema_version: affinetes_swe_blackbox_run.v1`) alongside the raw upstream artifacts. Together, the manifest and artifacts preserve the run for later inspection.

@@ -1,6 +1,6 @@
 ---
 title: "What you can and can't hide"
-description: "The full map of how a non-privileged app detects a rooted custom ROM, what closes each channel, and the two walls that nothing in userspace will move."
+description: "A reference table of custom-ROM detection channels and the changes used for each, followed by the remaining isolated /proc and hardware-attestation limits."
 date: 2026-06-10
 order: 5
 series: "android-hardening"
@@ -8,7 +8,7 @@ reading: "10 min read"
 tags: ["android", "detection", "synthesis", "rasp"]
 ---
 
-After weeks of engineering against detection channels, I synthesized the final map of how an app probes a rooted custom ROM, and at what layer the countermeasure must exist. A fix at the wrong layer is fatal against RASP.
+After weeks of work on these detection channels, I collected the probes and corresponding changes in one table. Each change has to act at the layer where RASP can observe the information.
 
 | Channel | Probe | Countermeasure | Layer |
 |---|---|---|---|
@@ -27,9 +27,9 @@ After weeks of engineering against detection channels, I synthesized the final m
 | Isolated `/proc` | `cmdline` inside namespace | **None** | kernel |
 | Attestation | `setAttestationChallenge` | **None** | TEE |
 
-I adhered strictly to filtering by caller instead of injecting into apps. The strongest covers lived in `system_server`, rewriting responses based on caller UID. My app processes remained absolutely pristine. Consistency beat spoofing: a single mismatched partition fingerprint triggered RASP alerts instantly.
+I filtered responses in `system_server` by caller UID, keeping injected code out of the app processes. The returned information also had to agree across interfaces: a single mismatched partition fingerprint triggered RASP alerts instantly.
 
-But I hit two immovable walls that userspace simply cannot touch:
+Two limits remained beyond these userspace changes:
 
 ```text
 +--------------------------------+       +--------------------------------+
@@ -44,4 +44,4 @@ But I hit two immovable walls that userspace simply cannot touch:
 
 First, Shamiko's mount-namespace isolation gives the app a clean view, stripping Magisk bind-mounts. But doing so restores the genuine `/proc/self/cmdline` and `/proc/version`. Since my Zygisk module didn't inject into the isolated app, there was no code present to rewrite those files.
 
-Second, the [Android Key Attestation (Google, 2024)](https://developer.android.com/privacy-and-security/security-key-attestation) evaluates hardware reality. The TEE records the boot state natively and signs it via a key userspace cannot read. A forged chain can satisfy local checks, but server-side validation against the hardware root fails instantly. A userspace module is powerless against silicon math.
+Second, the [Android Key Attestation (Google, 2024)](https://developer.android.com/privacy-and-security/security-key-attestation) checks the hardware-reported boot state. The TEE records the boot state natively and signs it via a key userspace cannot read. A forged chain can satisfy local checks, but server-side validation against the hardware root fails instantly. A userspace module cannot produce a signature with the TEE's private key.

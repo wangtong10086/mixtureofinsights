@@ -1,6 +1,6 @@
 ---
 title: "DPO when I can't afford RLHF"
-description: "RLHF is powerful and heavy — a reward model, an online rollout loop, instability. DPO gets most of the way with a fraction of the machinery. The derivation, the gradient that explains why I use it, and the catch — which is always the data."
+description: "Using DPO for role-play preferences: the loss and gradient, chosen/rejected data, falling chosen likelihood, and serving character adapters with S-LoRA."
 date: 2026-06-10
 order: 4
 series: "post-training"
@@ -8,20 +8,20 @@ reading: "12 min read"
 tags: ["llm", "dpo", "alignment", "preference-data", "vllm"]
 ---
 
-The previous posts climbed a verifiable reward with GRPO. That machinery is my go-to when correctness is checkable and I need online exploration. But alignment isn't always that. "Stay in character." "Prefer this tone." There's no verifier and no need for online RL. Reaching for full RLHF here means I'm paying for an engine I won't drive. 
+The previous posts used GRPO for tasks with verifiable rewards and a need for online exploration. My role-play models posed a different problem: staying in character and using a preferred tone. There was no verifier for those judgments and no need for online RL, so a full RLHF loop added unnecessary cost.
 
-I use **DPO** instead. It's the lighter tool, and on my role-play models, it fit perfectly. It works due to a strict mathematical derivation rather than a heuristic, as outlined in the original [Direct Preference Optimization (Rafailov et al., 2023)](https://arxiv.org/abs/2305.18290) paper. 
+I used DPO for these models. It trains on preference pairs, using the objective derived in the original [Direct Preference Optimization (Rafailov et al., 2023)](https://arxiv.org/abs/2305.18290) paper.
 
 ## What I bypass with DPO
 
-PPO-style RLHF involves training a reward model $r_\phi$, running an online RL loop that samples from the policy, scoring with the RM, and updating — with a KL leash to keep it sane. 
+PPO-style RLHF involves training a reward model $r_\phi$, running an online RL loop that samples from the policy, scoring with the RM, and updating — with a KL penalty to limit drift from the reference.
 
 $$
 \max_{\pi_\theta}\; \mathbb{E}_{x,\,y\sim\pi_\theta}\big[\, r_\phi(x,y)\,\big]
 \;-\; \beta\, \mathbb{D}_{\mathrm{KL}}\!\left[\pi_\theta(y\mid x)\,\|\,\pi_{\mathrm{ref}}(y\mid x)\right].
 $$
 
-It's strong, but I have to fit a reward model, babysit an unstable online loop, and burn serious compute. DPO's insight is that for this exact objective, I never needed the loop.
+That requires a reward model, a potentially unstable online loop, and substantial compute. DPO derives an offline objective from this formulation.
 
 ## The derivation I rely on
 
@@ -47,7 +47,7 @@ $$
 \right)\right].
 $$
 
-No reward model. No sampling. No online loop. Four forward passes per pair (policy and reference, on chosen and rejected) and a logistic loss. The KL leash is baked into the loss through $\pi_{\mathrm{ref}}$ and $\beta$.
+Training uses four forward passes per pair (policy and reference, on chosen and rejected) and a logistic loss, without a separate reward model or online sampling loop. The KL constraint enters the loss through $\pi_{\mathrm{ref}}$ and $\beta$.
 
 This maps to my training script. `generate_dpo_script` in [`orbit/training/dpo_config.py`](https://github.com/wangtong10086/mixtureofinsights/blob/main/orbit/training/dpo_config.py) wires up a `trl` `DPOConfig` + `DPOTrainer`. The $\beta$ from the derivation is a literal constant:
 
@@ -98,4 +98,4 @@ I target out-of-character (OOC) slips — the model breaking persona. My prefere
 
 At 14B parameters in fp16, loading a full fine-tune per character takes ~28 GB of weights. I'd max out a GPU immediately. Instead, I deploy using vLLM + [S-LoRA (Sheng et al., 2023)](https://arxiv.org/abs/2311.03285). The personas are LoRA adapters (rank-16 is tens of MBs), multiplexed over one shared base on the same GPU. S-LoRA batches requests hitting different adapters together, so my deployment answers as dozens of characters concurrently at high throughput.
 
-DPO is my offline, stable hammer for preference and style. I let the math collapse the reward model into a log-ratio, keep my data near on-policy, and serve the weights as cheap deltas.
+I keep the preference data close to the current policy and deploy the resulting adapters over a shared base. The main work is constructing useful pairs and checking what the likelihoods do during training.

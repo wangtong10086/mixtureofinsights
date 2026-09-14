@@ -1,6 +1,6 @@
 ---
 title: "bundle 即契约"
-description: "远程机器跑完就没了，留下来的 bundle 必须能替它作证。目录结构、日志分层、依赖来源和黑盒边界，都应该写进这份契约。"
+description: "ORBIT bundle 的目录约定、分层日志和依赖来源记录，以及接入上游项目时保留原有语义的做法。"
 date: 2026-06-10
 order: 3
 series: "orbit"
@@ -8,19 +8,19 @@ reading: "12 分钟"
 tags: ["llm", "infrastructure", "observability", "orbit", "reproducibility"]
 ---
 
-在云端跑计算最残酷的物理现实是：机器不会等你回过神来收集日志。当显存 OOM 触发、进程崩溃、抢占式实例被回收，你手里剩下的就只有系统抓回来的那点残渣。我意识到，在 ORBIT 里，bundle 绝对不能只是个“打包格式”，它必须是运行生命周期的黑匣子。
+显存 OOM、进程崩溃或抢占式实例被回收后，排查只能依赖已经收集到的日志和产物。因此，ORBIT 的 bundle 除了打包输入，还要记录运行过程。
 
-这个黑匣子的寿命必须超越它所运行的物理宿主。控制面下发了指令，执行面随时可能湮灭；最后能用来还原案发现场的，只有 `job.json`、`runtime-precheck.log`、标准的 `stdout/stderr`，以及精确到 Git SHA 的依赖来路。一份只写着“运行成功”的 bundle 就是一堆废纸。它必须在物理层面上自证清白。
+这些记录需要在宿主机回收后仍然可用。只有“运行成功”这个状态不够：还需要 `job.json`、`runtime-precheck.log`、`stdout/stderr`，以及精确到 Git SHA 的依赖来源，才能还原当时运行了什么。
 
 ## 瓶颈：薛定谔的依赖环境
 
-最难以复现的问题往往来源于那些你不拥有的外部代码。一台干净的租用服务器上，你跑的到底是刚才打包进去的 `ms-swift`，还是宿主镜像里残留的脏版本？在本地开发机上你绝不会问这个问题，但在分布式调度下，这就成了随时引爆的幽灵 Bug。
+外部依赖往往是复现困难的来源。租用服务器上实际加载的 `ms-swift`，可能是刚打包进去的版本，也可能是宿主镜像里已有的版本。仅看提交时的配置，无法判断运行时用了哪一个。
 
-这也是 [Sculley 等人 (2015) 在《Hidden Technical Debt in Machine Learning Systems》](https://papers.nips.cc/paper/5656-hidden-technical-debt-in-machine-learning-systems.pdf) 中痛陈的“未声明的依赖与流水线丛林”债务。为了斩断这种不确定性，我引入了极度苛刻的黑盒纪律。
+这也是 [Sculley 等人 (2015) 在《Hidden Technical Debt in Machine Learning Systems》](https://papers.nips.cc/paper/5656-hidden-technical-debt-in-machine-learning-systems.pdf) 中讨论的“未声明的依赖与流水线丛林”债务。为减少这类不确定性，我约定了目录结构和依赖检查方式。
 
 ## 架构重组：固定目录拓扑与分层日志
 
-我通过代码固化了 bundle 的空间拓扑结构。在 [`orbit/core/execution/bundle.py`](https://github.com/wangtong10086/mixtureofinsights/blob/main/src/orbit/core/execution/bundle.py) 的 `JobBundle.ensure_structure` 中，文件系统被切割成职责极度分明的部分：
+bundle 的目录结构固定在代码中。在 [`orbit/core/execution/bundle.py`](https://github.com/wangtong10086/mixtureofinsights/blob/main/src/orbit/core/execution/bundle.py) 的 `JobBundle.ensure_structure` 中，各目录的职责如下：
 
 ```text
 bundle_root/
@@ -31,11 +31,11 @@ bundle_root/
  `-- artifacts/    (负载产物：训练 log, checkpoint, manifest.json)
 ```
 
-这条切割线将“我叫它做什么”和“它实际做了什么”进行了物理隔离。调试是一套确定性的决策树：如果 `runtime.log` 异常，是宿主级别的启动失败；如果 `artifacts/runtime-precheck.log` 报错，说明环境暂存时依赖拉取出了问题；只有到了 `artifacts/training.log`，才是真正的模型崩溃。通过把可观测性编码进文件目录，我建立了一套硬核的法医学系统。
+输入配置与运行记录分开存放。排查时可以按日志层级定位：如果 `runtime.log` 异常，是宿主级别的启动失败；如果 `artifacts/runtime-precheck.log` 报错，说明环境暂存时依赖拉取出了问题；只有到了 `artifacts/training.log`，才是真正的模型崩溃。目录本身就提供了查找日志的顺序。
 
 ## 原理推演：精准的来路记录 (Provenance)
 
-为了解决依赖环境被篡改的问题，我让入口脚本执行严格的预检。在真正的载荷运行前，它必须输出自己绑定了内存中哪个具体的包路径：
+入口脚本会先检查依赖。负载运行前，它必须输出实际导入的包路径：
 
 ```python
 import swift
@@ -44,7 +44,7 @@ print(f'swift runtime import ok: version={getattr(swift, "__version__", "unknown
       f'path={pathlib.Path(swift.__file__).resolve()}')
 ```
 
-但这还不够。面对诸如 `affinetes` 等不受控的外部环境时，我做了一层极薄的隔离集成。在 [`orbit/integrations/affinetes_swe`](https://github.com/wangtong10086/mixtureofinsights/blob/main/src/orbit/integrations/affinetes_swe) 中，我要求上游代码必须按完整的 40 字符 Git commit hash 钉死：
+接入 `affinetes` 这类外部环境时，我另加了一层很薄的集成代码。在 [`orbit/integrations/affinetes_swe`](https://github.com/wangtong10086/mixtureofinsights/blob/main/src/orbit/integrations/affinetes_swe) 中，我要求上游代码必须按完整的 40 字符 Git commit hash 钉死：
 
 ```text
 [ORBIT: Thin Wrapper]                    [Upstream Environment (Blackbox)]
@@ -55,8 +55,8 @@ print(f'swift runtime import ok: version={getattr(swift, "__version__", "unknown
 +---------------------------+            +---------------------------------+
 ```
 
-如果代码树处于 dirty 状态，运行时直接拒绝启动。在隔离层面，子进程完全把上游视为黑盒，不去劫持任何语义。这也是 [Bertrand Meyer 在《Design by Contract》](https://se.inf.ethz.ch/~meyer/publications/computer/contract.pdf) 里定义的严格接口契约。不仅如此，就像 [Pineau 等人提出的 ML Reproducibility Checklist](https://www.cs.mcgill.ca/~jpineau/ReproducibilityChecklist.pdf) 所倡导的，我记录的是**运行时实际观测到的状态**，而不是期望状态。因为观测与期望之间的微小偏差，正是所有不可复现性的温床。
+如果代码树处于 dirty 状态，运行时直接拒绝启动。在隔离层面，子进程完全把上游视为黑盒，不去劫持任何语义。这也是 [Bertrand Meyer 在《Design by Contract》](https://se.inf.ethz.ch/~meyer/publications/computer/contract.pdf) 里定义的严格接口契约。不仅如此，就像 [Pineau 等人提出的 ML Reproducibility Checklist](https://www.cs.mcgill.ca/~jpineau/ReproducibilityChecklist.pdf) 所倡导的，我记录的是**运行时实际观测到的状态**，而不是期望状态。观测与期望之间的偏差，是排查不可复现问题的线索。
 
 ## 硬核落地：放弃修改的权力
 
-这种将外部依赖当成黑盒处理的代价是：你无法轻易魔改它，你继承了上游所有的丑陋与怪癖。但收益更为致命：你可以伴随上游的安全演进随时跟进，且所有跑出来的 metric 都能追溯到一条无可辩驳的 git commit。钉死它，薄薄地包覆它，但绝不分叉它的含义，这是让数据真正具备科学价值的唯一途径。
+把外部依赖当作黑盒，就得接受上游的行为和限制，不能随手修改内部逻辑。这样可以继续跟进上游的安全更新，也能将每次运行的 metric 追溯到具体的 git commit。集成层只负责调用和记录，保持上游语义不变。

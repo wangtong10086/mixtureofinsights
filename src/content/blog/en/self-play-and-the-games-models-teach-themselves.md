@@ -1,6 +1,6 @@
 ---
 title: "Self-play, and the games my models teach themselves"
-description: "There's no dataset of good game-play. But in a game with a clear outcome, I manufacture one — I let a strong sampler play out games, filter by who won, and the transcripts become the strategy data. How the data engine, the verifier, and emergent strategy all meet, grounded in my GAME pipeline."
+description: "The GAME pipeline uses OpenSpiel, MCTS, and CFR/MCCFR to generate play, filters trajectories by outcome, and turns them into SFT conversations."
 date: 2026-06-10
 order: 5
 series: "post-training"
@@ -8,7 +8,7 @@ reading: "13 min read"
 tags: ["llm", "self-play", "game-playing", "openspiel", "rejection-sampling"]
 ---
 
-What do I do when the target behavior is so situated that I can't write it down? I can't script the right move in a five-card imperfect-information bluffing game, turn after turn, against an adapting opponent. But I can let a game-theoretic sampler discover it, then distill its play into the model — which is exactly what my `GAME` environment does.
+I can't script the right move at every turn of a five-card imperfect-information bluffing game against an adapting opponent. My `GAME` environment instead uses a game-theoretic sampler to produce play, then turns those decisions into training data for the model.
 
 ## My setup: OpenSpiel games as a strategy generator
 
@@ -33,7 +33,7 @@ Perfect-information board games (`othello`, `hex`) use MCTS search at collection
 
 ## Why self-play hands me infinite data
 
-The reason I build this is that the game hands me a free verifier. Every match ends with a terminal state, and OpenSpiel returns the payoff. In `search_generators.py` I keep the trajectory only if the recorded player actually won:
+The game provides its own verifier. Every match ends with a terminal state, and OpenSpiel returns the payoff. In `search_generators.py` I keep the trajectory only if the recorded player actually won:
 
 ```python
 returns = state.returns()
@@ -58,7 +58,7 @@ That `returns()` payoff is an automatic, un-gameable label on the entire traject
 +-------------------+      +-------------------+
 ```
 
-In my generation pipeline, I oversample and keep the wins. Every generator's `generate_batch` budgets `sample_count * attempt_multiplier` attempts. The transcripts are the dataset — I never script a single move. Filtering by who won is rejection sampling on trajectories. It has a credit assignment problem — a won game launders its weak moves into my training set. Win/loss is a noisy, delayed, sparse reward. By utilizing MCTS budgets or CFR solvers that are already near-optimal per move, I ensure most kept trajectories are clean by construction.
+In my generation pipeline, I oversample and keep the wins. Every generator's `generate_batch` budgets `sample_count * attempt_multiplier` attempts. The transcripts are the dataset — I never script a single move. Filtering by who won is rejection sampling on trajectories. It has a credit assignment problem — a won game also brings its weak moves into the training set. Win/loss is a noisy, delayed, sparse reward. By using MCTS budgets or CFR solvers that are already near-optimal per move, I ensure most kept trajectories are clean by construction.
 
 ## Self-play is my automatic curriculum
 

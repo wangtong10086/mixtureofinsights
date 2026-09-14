@@ -1,96 +1,32 @@
 ---
-import { getCollection } from 'astro:content';
-import { t, langOf, slugOf, postUrl, seriesKeys, seriesName, seriesBlurb, type Lang } from '../i18n';
-const { lang } = Astro.props as { lang: Lang };
+import { t, seriesName, seriesUrl, localUrl, type Lang } from '../i18n';
+import { postsFor, groupsFor } from '../lib/posts';
+import PostList from './PostList.astro';
+const { lang = 'en' } = Astro.props as { lang?: Lang };
 const tr = t(lang);
-const all = await getCollection('blog');
-const mine = all.filter((p) => langOf(p.id) === lang);
-const keys = seriesKeys(mine);
-const groups = keys.map((k) => ({
-  key: k,
-  name: seriesName(k, lang),
-  blurb: seriesBlurb(k, lang),
-  posts: mine.filter((p) => p.data.series === k).sort((a, b) => a.data.order - b.data.order),
-}));
-const notes = mine.filter((p) => !p.data.series).sort((a, b) => +b.data.date - +a.data.date);
-const locale = lang === 'zh' ? 'zh-CN' : 'en';
-const fmt = (d) => new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short', day: 'numeric' }).format(d);
-const cover = (p) => `/og/${slugOf(p.id)}.jpg`;
-const href = (p) => postUrl(lang, slugOf(p.id));
-const featuredSlugs = [
-  'post-training-is-a-data-problem',
-  'a-control-plane-for-renting-gpus',
-  'when-the-gpu-isnt-an-nvidia',
-];
-const featured = featuredSlugs
-  .map((slug) => mine.find((p) => slugOf(p.id) === slug))
-  .filter(Boolean);
+const mine = await postsFor(lang);
+const groups = groupsFor(mine);
 ---
-<section class="wrap hero">
-  <h1>{tr('hero.title')}</h1>
-  <p>{tr('hero.desc')}</p>
-</section>
-
-<section class="wrap">
-  <section class="featured-strip" aria-label={lang === 'zh' ? '精选文章' : 'Featured posts'}>
-    <header class="section-head featured-head">
-      <span class="kicker">{lang === 'zh' ? '精选' : 'Featured'}</span>
-      <h2 class="section-title">{lang === 'zh' ? '可以从这里开始读' : 'Start Here'}</h2>
-    </header>
-    <div class="featured-grid">
-      {featured.map((p) => (
-        <a class="featured-card" href={href(p)}>
-          <img class="featured-thumb" src={cover(p)} alt="" width="320" height="180" loading="lazy" />
-          <span class="featured-meta">{fmt(p.data.date)}{p.data.reading ? ` · ${p.data.reading}` : ''}</span>
-          <h3>{p.data.title}</h3>
-          <p>{p.data.description}</p>
-        </a>
-      ))}
-    </div>
-  </section>
-
-  {groups.map((g) => (
-    <>
-      <header class="section-head">
-        <span class="kicker">{tr('section.series')}</span>
-        <h2 class="section-title">{g.name}</h2>
-        {g.blurb && <p class="section-sub">{g.blurb}</p>}
-      </header>
-      <ul class="posts">
-        {g.posts.map((p) => (
-          <li class="post-item">
-            <a href={href(p)} class="post-link">
-              <img class="thumb" src={cover(p)} alt="" width="160" height="160" loading="lazy" />
-              <div class="post-body">
-                <div class="meta">{fmt(p.data.date)}{p.data.reading ? ` · ${p.data.reading}` : ''}</div>
-                <h2><span class="idx">{String(p.data.order).padStart(2, '0')}</span>{p.data.title}</h2>
-                <p>{p.data.description}</p>
-              </div>
-            </a>
-          </li>
+<div class="wrap index-wrap">
+  <header class="home-intro">
+    <h1>{tr('home.title')}</h1>
+    <p>{tr('hero.desc')}</p>
+  </header>
+  <div class="home-columns">
+    <section aria-labelledby="recent-heading">
+      <div class="index-heading"><h2 id="recent-heading">{tr('home.recent')}</h2><span>{mine.length} {tr('posts.count')}</span></div>
+      <PostList posts={mine.slice(0, 6)} lang={lang} />
+      <a class="all-posts" href={localUrl(lang, '/archive/')}>{tr('home.all')} <span aria-hidden="true">→</span></a>
+    </section>
+    <aside class="series-index" aria-labelledby="series-heading">
+      <div class="index-heading"><h2 id="series-heading">{tr('section.series')}</h2></div>
+      <ul>
+        {groups.map((group) => (
+          <li><a href={seriesUrl(lang, group.key)}>{seriesName(group.key, lang)}<span>{group.posts.length} {tr('posts.count')}</span></a></li>
         ))}
       </ul>
-    </>
-  ))}
+      <a class="rss-link" href={localUrl(lang, '/rss.xml')}>RSS <span aria-hidden="true">↗</span></a>
+    </aside>
+  </div>
+</div>
 
-  {notes.length > 0 && (
-    <header class="section-head" style="margin-top:3.4rem">
-      <span class="kicker">{tr('section.notes')}</span>
-      <h2 class="section-title">{tr('section.notesSub')}</h2>
-    </header>
-  )}
-  <ul class="posts">
-    {notes.map((p) => (
-      <li class="post-item">
-        <a href={href(p)} class="post-link">
-          <img class="thumb" src={cover(p)} alt="" width="160" height="160" loading="lazy" />
-          <div class="post-body">
-            <div class="meta">{fmt(p.data.date)}{p.data.reading ? ` · ${p.data.reading}` : ''}</div>
-            <h2>{p.data.title}</h2>
-            <p>{p.data.description}</p>
-          </div>
-        </a>
-      </li>
-    ))}
-  </ul>
-</section>

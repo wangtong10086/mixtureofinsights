@@ -51,11 +51,24 @@ for the Android series. Keep it in sync when editing a post's technical content.
 
 ## Develop
 
+Use Node 22. The editorial redesign adds locale-aware archive and series pages,
+with recent posts on the homepage. Reading dates use UTC; existing article URLs
+and OG images are preserved. Set optional front-matter `showCover: true` only when
+a cover contributes to an article; the default is to keep it out of the reading page.
+
 ```bash
-npm install
+npm ci
+npm run check       # Astro / TypeScript diagnostics
 npm run dev          # http://localhost:4321
 npm run build        # -> dist/
+npm test             # built routes, feeds, metadata and protected content
 ```
+
+See [the validation report](docs/REDESIGN_VALIDATION.md) for browser coverage,
+screenshots, Windows CLI notes and remaining checks, and
+[the editorial audit](docs/EDITORIAL_AUDIT.md) for claims needing source evidence.
+The subsequent [HumanWriting review](docs/HUMANWRITING_REVIEW.md) covers prose edits
+to all 18 articles in both languages and the checks run for that revision.
 
 ## Deploy (Cloudflare Workers)
 

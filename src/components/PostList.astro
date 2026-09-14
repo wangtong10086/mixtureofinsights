@@ -1,0 +1,25 @@
+---
+import { postUrl, slugOf, seriesName, seriesUrl, type Lang } from '../i18n';
+import { formatDate, type Post } from '../lib/posts';
+interface Props { posts: Post[]; lang: Lang; mode?: 'recent' | 'archive' | 'series'; }
+const { posts, lang, mode = 'recent' } = Astro.props;
+---
+<ol class:list={['post-list', mode]}>
+  {posts.map((post, index) => (
+    <li class="entry">
+      <div class="entry-meta">
+        {mode === 'series' && <span class="chapter">{String(post.data.order).padStart(2, '0')}</span>}
+        <time datetime={post.data.date.toISOString().slice(0, 10)}>{formatDate(post.data.date, lang)}</time>
+      </div>
+      <div class="entry-body">
+        <h3><a href={postUrl(lang, slugOf(post.id))}>{post.data.title}</a></h3>
+        {mode === 'recent' && index === 0 && <p class="entry-description">{post.data.description}</p>}
+        {mode !== 'series' && post.data.series && (
+          <a class="entry-series" href={seriesUrl(lang, post.data.series)}>{seriesName(post.data.series, lang)}</a>
+        )}
+        {mode === 'series' && post.data.reading && <span class="entry-series">{post.data.reading}</span>}
+      </div>
+    </li>
+  ))}
+</ol>
+

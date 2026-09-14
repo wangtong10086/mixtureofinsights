@@ -33,13 +33,19 @@ const giscusLang = lang === 'zh' ? 'zh-CN' : 'en';
     Object.keys(attrs).forEach(function (k) { s.setAttribute(k, attrs[k]); });
     s.crossOrigin = 'anonymous'; s.async = true;
     mount.appendChild(s);
-    var tog = document.getElementById('themeToggle');
-    if (tog) tog.addEventListener('click', function () {
-      setTimeout(function () {
-        var d = document.documentElement.dataset.theme === 'dark';
-        var f = document.querySelector('iframe.giscus-frame');
-        if (f) f.contentWindow.postMessage({ giscus: { setConfig: { theme: d ? 'dark_dimmed' : 'light' } } }, 'https://giscus.app');
-      }, 60);
-    });
+    function syncTheme() {
+      var d = document.documentElement.dataset.theme === 'dark';
+      s.setAttribute('data-theme', d ? 'dark_dimmed' : 'light');
+      var f = document.querySelector('iframe.giscus-frame');
+      if (f) f.contentWindow.postMessage({ giscus: { setConfig: { theme: d ? 'dark_dimmed' : 'light' } } }, 'https://giscus.app');
+    }
+    window.addEventListener('themechange', syncTheme);
+    // A theme change can happen while the lazy iframe is still loading.
+    new MutationObserver(function () {
+      var f = document.querySelector('iframe.giscus-frame');
+      if (f && !f.dataset.themeBound) {
+        f.dataset.themeBound = 'true'; f.addEventListener('load', syncTheme); syncTheme();
+      }
+    }).observe(mount, { childList: true, subtree: true });
   })();
 </script>
