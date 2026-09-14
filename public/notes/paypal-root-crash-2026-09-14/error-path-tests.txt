@@ -1,0 +1,15 @@
+PASS bounded transition denied: -1 -> -22; commits=0
+PASS dyntransition denied: -13 -> -22; commits=0
+PASS ptrace denied: -13 -> -22; commits=0
+PASS allowed isolated transition: 12 -> 12; commits=1
+PASS initial setcurrent permission denied: -13 -> -13; commits=0
+PASS unknown target type: -22 -> -22; commits=0
+PASS target resolution allocation failure: -12 -> -12; commits=0
+PASS credential allocation failure: -12 -> -12; commits=0
+PASS source lookup allocation failure: -13 -> -13; commits=0
+PASS system zygote preserved: -13 -> -13; commits=0
+PASS ordinary app preserved: -13 -> -13; commits=0
+PASS similar type excluded: -13 -> -13; commits=0
+PASS short source context excluded: -13 -> -13; commits=0
+PASS exec attribute unchanged: -13 -> -13; commits=0
+PASS other transition error unchanged: -5 -> -5; commits=0

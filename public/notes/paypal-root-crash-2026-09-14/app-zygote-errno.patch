@@ -1,0 +1,31 @@
+diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
+index 087d2d970..6c6672154 100644
+--- a/security/selinux/hooks.c
++++ b/security/selinux/hooks.c
+@@ -6687,6 +6687,26 @@ static int selinux_setprocattr(const char *name, void *value, size_t size)
+ 
+ abort_change:
+ 	abort_creds(new);
++	/*
++	 * App zygotes need setcurrent to specialize isolated children. Do not
++	 * expose target-type existence through a different errno for denied
++	 * transitions. All permission checks and audit records above remain
++	 * in effect; successful transitions and other callers are unchanged.
++	 */
++	if (!strcmp(name, "current") &&
++	    (error == -EPERM || error == -EACCES)) {
++		char *context = NULL;
++		u32 context_len = 0;
++		static const char prefix[] = "u:r:app_zygote:";
++
++		if (!security_sid_to_context(&selinux_state, mysid,
++					    &context, &context_len)) {
++			if (context_len >= sizeof(prefix) - 1 &&
++			    !memcmp(context, prefix, sizeof(prefix) - 1))
++				error = -EINVAL;
++			kfree(context);
++		}
++	}
+ 	return error;
+ }
+ 

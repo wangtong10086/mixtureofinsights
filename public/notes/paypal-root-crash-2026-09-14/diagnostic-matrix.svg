@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">PayPal startup: two independently tested changes</title>
+  <desc id="desc">Original, Magisk-only and kernel-only stages still exited. The combined changes reached fingerprint authentication and a stable app page. Rows show installed changes and observed startup, not a claim that every signal was remeasured in every stage.</desc>
+  <rect width="1024" height="1024" fill="#f5f1e8"/>
+  <g font-family="DejaVu Sans, sans-serif">
+    <text x="72" y="91" font-size="17" letter-spacing="3" fill="#64716a">MIXTURE OF INSIGHTS / SYSTEMS NOTES</text>
+    <text x="68" y="178" font-size="61" font-weight="700" fill="#233c34">PayPal startup</text>
+    <text x="72" y="233" font-size="30" fill="#56645d">A two-signal investigation</text>
+    <path d="M72 273H952" stroke="#bec8bd" stroke-width="2"/>
+    <text x="72" y="329" font-size="18" fill="#56645d">INSTALLED CHANGES</text>
+    <text x="773" y="329" font-size="18" fill="#56645d">OBSERVED</text>
+    <text x="356" y="379" font-size="21" fill="#233c34">Magisk init</text>
+    <text x="571" y="379" font-size="21" fill="#233c34">Kernel</text>
+    <text x="773" y="379" font-size="21" fill="#233c34">Startup</text>
+    <rect x="72" y="408" width="880" height="82" rx="12" fill="#fffdf8"/>
+    <rect x="72" y="502" width="880" height="82" rx="12" fill="#fffdf8"/>
+    <rect x="72" y="596" width="880" height="82" rx="12" fill="#fffdf8"/>
+    <rect x="72" y="690" width="880" height="82" rx="12" fill="#dceadf"/>
+    <g font-size="21" fill="#233c34">
+      <text x="94" y="459">Baseline</text><text x="356" y="459">Original</text><text x="571" y="459">Original</text>
+      <text x="94" y="553">First change</text><text x="356" y="553">Modified</text><text x="571" y="553">Original</text>
+      <text x="94" y="647">Second change</text><text x="356" y="647">Original</text><text x="571" y="647">Modified</text>
+      <text x="94" y="741" font-weight="700">Combined</text><text x="356" y="741">Modified</text><text x="571" y="741">Modified</text>
+    </g>
+    <g font-size="22" font-weight="700">
+      <text x="773" y="459" fill="#9a542d">EXIT</text>
+      <text x="773" y="553" fill="#9a542d">EXIT</text>
+      <text x="773" y="647" fill="#9a542d">EXIT</text>
+      <text x="773" y="741" fill="#236549">OPEN</text>
+    </g>
+    <text x="72" y="841" font-size="23" fill="#233c34">Authenticated entry. Stable page. No new module.</text>
+    <text x="72" y="879" font-size="18" fill="#56645d">Per-stage evidence and test limits are recorded in the article.</text>
+    <path d="M72 922H952" stroke="#bec8bd" stroke-width="2"/>
+    <text x="72" y="964" font-size="17" fill="#64716a">XIAOMI 13 / ANDROID 16</text>
+    <text x="815" y="964" font-size="17" fill="#64716a">2026-09-14</text>
+  </g>
+</svg>

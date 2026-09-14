@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-14",
+  "provenance": "Selected technical fields from local investigation records. Identifiers, personal paths, raw logs, account UI and certificates are omitted. This is a sanitized author summary, not independent reproduction.",
+  "environment": {
+    "device_model": "Xiaomi 13 (fuxi)",
+    "android_sdk": 36,
+    "paypal_version": "10.12.0",
+    "magisk_version": "30.7",
+    "zygisknext_version": "1.5.0",
+    "kernel_release": "5.15.207-g03e6e48a5b4e"
+  },
+  "source": {
+    "kernel_repository": "https://github.com/LineageOS/android_kernel_xiaomi_sm8550",
+    "kernel_revision": "03e6e48a5b4ed606dfdd48bc782a57f9c778938b",
+    "magisk_repository": "https://github.com/topjohnwu/Magisk",
+    "magisk_revision": "e8a58776f1d7bdf852072ad0baa6eceb9a1e4aac",
+    "llvm_source_revision": "5e96669f06077099aa41290cdb4c5e6fa0f59349",
+    "compiler_binary_identical_claimed": false
+  },
+  "offline_device_number_aba": [
+    {
+      "experiment": "A",
+      "device_numbers": {
+        "/dev": 17,
+        "/dev/pts": 18,
+        "/proc": 19,
+        "/sys": 21
+      },
+      "decoded_result": 1
+    },
+    {
+      "experiment": "B",
+      "device_numbers": {
+        "/dev": 17,
+        "/dev/pts": 18,
+        "/proc": 19,
+        "/sys": 20
+      },
+      "decoded_result": 0
+    },
+    {
+      "experiment": "A-restored",
+      "device_numbers": {
+        "/dev": 17,
+        "/dev/pts": 18,
+        "/proc": 19,
+        "/sys": 21
+      },
+      "decoded_result": 1
+    }
+  ],
+  "selinux_baseline": {
+    "caller": "app_zygote",
+    "path": "/proc/thread-self/attr/current",
+    "writes": [
+      {
+        "label": "u:r:kp:s0",
+        "bytes": 9,
+        "kernel_return": -22
+      },
+      {
+        "label": "u:object_r:ksu_file:s0",
+        "bytes": 22,
+        "kernel_return": -22
+      },
+      {
+        "label": "u:r:magisk:s0",
+        "bytes": 13,
+        "kernel_return": -1
+      }
+    ],
+    "nul_terminated": false,
+    "aggregate_marker_observed_directly": false
+  },
+  "kernel_only_apk": [
+    {
+      "phase": "ordinary_app",
+      "errno": [
+        13,
+        13,
+        13
+      ]
+    },
+    {
+      "phase": "app_zygote",
+      "errno": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "phase": "isolated_app",
+      "errno": [
+        13,
+        13,
+        13
+      ]
+    }
+  ],
+  "kernel_only_real_paypal_write_returns": [
+    -22,
+    -22,
+    -22
+  ],
+  "compatibility": {
+    "required_symbols": 4543,
+    "kernel_imports": 2984,
+    "module_imports": 1559,
+    "missing": [],
+    "mismatched": {},
+    "signature_certificate_identical": true
+  },
+  "host_tests": {
+    "passed": 15,
+    "scope": "Actual before/after selinux_setprocattr control flow with kernel API doubles; ASan and UBSan. Not runtime ABI or boot tests."
+  },
+  "acceptance": {
+    "user_confirmed_authenticated_entry_and_stable_page": true,
+    "paypal_alive": true,
+    "crash_buffer_empty": true,
+    "selinux_enforcing": true,
+    "policy_byte_identical": true,
+    "loaded_module_count": 388,
+    "missing_modules": [],
+    "hma_configuration_unchanged": true,
+    "new_persistent_modules": 0,
+    "diagnostic_apk_removed": true,
+    "task_bpf_pins_removed": true,
+    "probe_events_empty": true,
+    "device_numbers": {
+      "/dev": 17,
+      "/dev/pts": 18,
+      "/proc": 19,
+      "/sys": 20
+    },
+    "ifast_root_warning": false,
+    "ifast_developer_options_warning": true,
+    "ifast_beyond_warning_tested": false,
+    "payment_or_transfer_tested": false
+  },
+  "limits": [
+    "Historical first trigger was not established.",
+    "Original native function offline A/B/A is not whole-device A/B/A.",
+    "SELinux calls were not separately captured in the Magisk-only stage.",
+    "Combined acceptance used the same verified kernel without reattaching the syscall probe.",
+    "Not every planned repeated cold-start or whole-device A/B/A test was completed.",
+    "No claim of universal detection hiding, hardware attestation change, or future-version compatibility."
+  ]
+}

@@ -110,6 +110,53 @@ The specific files/symbols the posts are written against. Paths are relative to 
 - **Wallet / attestation ground truth** — a private device runbook and private Wallet capture logs
   (structure only; see secrets note).
 
+### PayPal startup investigation — 2026-09-14
+
+Posts: `src/content/blog/{zh,en}/06-paypal-crash-two-root-signals.md`.
+Public attachments: `public/notes/paypal-root-crash-2026-09-14/`.
+
+This is a new device observation, separate from the June Android posts and the
+September iFAST repair. Ground truth was the private PayPal investigation workspace;
+only selected technical results and the two reviewed source diffs are published.
+
+| Claim | Local evidence anchor (relative to private investigation root) |
+| --- | --- |
+| Current `s=root` failure, real native path | `implementation/clean-baseline-log.txt`, `implementation/checks-boot-diagnostic.txt`, `implementation/checks-boot-candidate-B.txt`; runtime detector analysis |
+| One-field offline A/B/A | `implementation/offline-causal-aba.json`, `observed-stat-buffers.json`, `emulate_device_check.py` |
+| First-stage allocation and real native result change | `boot-repair/diagnostic-early-dmesg.txt`, `candidate-B-early-dmesg.txt`, `README.md` |
+| Black screen during ART probe; mechanism unproven; recovery | `boot-repair/emergency-restore.json`, `restored-state.json`, `README.md` |
+| Exact App Zygote syscall inputs and original errors | `isolated-repair/baseline-readable.json`, `baseline-events.json`, `baseline-count.json`, `verified-evidence.json` |
+| Context-faithful APK reproduction | `isolated-repair/apk-baseline.jsonl`, `kernel-repair/selinux-only-diagnostic.jsonl` |
+| Static `0x122` derivation, not a captured aggregate marker | `isolated-repair/intent-args.json`, `service-strings.json`, private detector analysis |
+| Real kernel-only PayPal writes | `isolated-repair/kernel-only-readable.json`, `kernel-only-crash.txt` |
+| Build/source, CRC provider graph, certificate comparison | `kernel-repair/build-metadata.json`, `build-checks.json`, `existing-module-providers.json`, `module-info.json` |
+| 15 host tests, not runtime ABI tests | `kernel-repair/test_error_paths.py`, `error-path-tests.txt` |
+| Image packaging and temporary-boot partition preservation | `kernel-repair/package-validation.json`, `temporary-state.json`, `reviewed-images.json`; clean Magisk packaging validation |
+| Final user acceptance, policy, modules, cleanup, iFAST scope | `kernel-repair/user-confirmation.txt`, `final-state.json`, `acceptance-state.json`, `ifast-regression.json` |
+
+Source anchors:
+
+- Kernel [03e6e48a5b4ed606dfdd48bc782a57f9c778938b](https://github.com/LineageOS/android_kernel_xiaomi_sm8550/tree/03e6e48a5b4ed606dfdd48bc782a57f9c778938b):
+  `security/selinux/hooks.c::selinux_setprocattr`, `fs/super.c` anonymous device
+  allocation. The public patch is the actual 20-line `abort_change` modification.
+- Magisk [e8a58776f1d7bdf852072ad0baa6eceb9a1e4aac](https://github.com/topjohnwu/Magisk/tree/e8a58776f1d7bdf852072ad0baa6eceb9a1e4aac):
+  `native/src/init/init.rs::first_stage`, `mount.rs::prepare_data`, existing
+  mount-list cleanup and handoff. Published diff removes temporary logging.
+- LLVM source `5e96669f06077099aa41290cdb4c5e6fa0f59349`; source-version equality
+  is not compiler-binary equality. Original runtime Full LTO/CFI settings retained.
+- [Android service process options](https://developer.android.com/guide/topics/manifest/service-element#isolated),
+  [DirtySepolicy](https://github.com/LSPosed/DirtySepolicy) as an independent mechanism
+  reference, [kernel module signing](https://docs.kernel.org/5.15/admin-guide/module-signing.html).
+
+Limits that must survive future edits: the historical first trigger is unknown;
+offline A/B/A is not whole-device A/B/A; Magisk-only SELinux calls were not separately
+captured; combined acceptance did not reattach the probe; repeated cold-start plans
+were not fully executed; iFAST showed a developer-options warning and later screens
+were not tested; PayPal payments and hardware attestation were not tested. Certificate
+equality describes preserving an existing public trust input, not introducing forced
+signature enforcement or using an original private signing key. No raw UI, device
+identifiers, personal host paths, certificate material, or boot images are included.
+
 ## External references (papers, docs) by series
 
 These are the "Further reading" citations already linked in the posts, consolidated for upkeep.

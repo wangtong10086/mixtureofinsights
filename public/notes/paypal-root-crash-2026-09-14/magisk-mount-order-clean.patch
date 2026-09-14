@@ -1,0 +1,46 @@
+diff --git a/native/src/init/init.rs b/native/src/init/init.rs
+index 60dfe16..ee0114b 100644
+--- a/native/src/init/init.rs
++++ b/native/src/init/init.rs
+@@ -30,8 +30,9 @@ impl MagiskInit {
+         }
+     }
+ 
+-    fn first_stage(&self) {
++    fn first_stage(&mut self) {
+         info!("First Stage Init");
++        self.prepare_first_stage_devices().log_ok();
+         self.prepare_data();
+ 
+         if !cstr!("/sdcard").exists() && !cstr!("/first_stage_ramdisk/sdcard").exists() {
+diff --git a/native/src/init/mount.rs b/native/src/init/mount.rs
+index 91ce202..5138dfb 100644
+--- a/native/src/init/mount.rs
++++ b/native/src/init/mount.rs
+@@ -74,6 +74,26 @@ pub(crate) fn is_rootfs() -> bool {
+ }
+ 
+ impl MagiskInit {
++    pub(crate) fn prepare_first_stage_devices(&mut self) -> LoggedResult<()> {
++        // Complete the transient pseudo-filesystem set before allocating the
++        // persistent Magisk tmpfs. Original init recreates all four after our
++        // reverse-order cleanup, without an interleaved persistent allocation.
++        // Restrict this to first-stage handoff; legacy and recovery are unchanged.
++        cstr!("/dev").mkdirs(0o755)?;
++        nix::mount::mount(
++            Some(cstr!("tmpfs")), cstr!("/dev"), Some(cstr!("tmpfs")),
++            MsFlags::MS_NOSUID, Some(cstr!("mode=755")),
++        )?;
++        self.mount_list.push("/dev".to_string());
++        cstr!("/dev/pts").mkdir(0o755)?;
++        nix::mount::mount(
++            Some(cstr!("devpts")), cstr!("/dev/pts"), Some(cstr!("devpts")),
++            MsFlags::empty(), None::<&Utf8CStr>,
++        )?;
++        self.mount_list.push("/dev/pts".to_string());
++        Ok(())
++    }
++
+     pub(crate) fn prepare_data(&self) {
+         debug!("Setup data tmp");
+         cstr!("/data").mkdir(0o755).log_ok();
