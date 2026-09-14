@@ -187,6 +187,7 @@ body { transition: background .25s ease, color .25s ease; }
 /* comments */
 .comments { margin-top: 3.4rem; padding-top: 1.6rem; border-top: 1px solid var(--line); }
 .comments-title { font-family: var(--serif); font-weight: 600; font-size: 1.3rem; margin: 0 0 1rem; }
+.giscus-frame { width: 100%; max-width: 100%; }
 
 
 
@@ -236,6 +237,7 @@ a.entry-series:hover { color: var(--accent); }
 .series .entry { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr); gap: 1.2rem; }
 .series h3 { margin-top: 0; }
 .series-label { display: inline-block; font-size: .8rem; margin-bottom: .65rem; color: var(--accent); text-decoration: none; }
+.article h1 { text-wrap: balance; }
 .article .profile-name { font-size: 1.8rem; margin: 0; }
 .profile-links a { border: 0; border-radius: 0; padding-inline: 0; text-decoration: underline; }
 .profile-links { gap: 1.3rem; }
