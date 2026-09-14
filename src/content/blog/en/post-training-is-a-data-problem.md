@@ -1,6 +1,6 @@
 ---
 title: "Post-training is a data problem"
-description: "PPO, GRPO, and DPO are commoditized. In my engineering iterations, the only variable that structurally improved alignment was the synthetic data engine."
+description: "How ORBIT generates, filters, and verifies training trajectories, and how acceptance rate affects the cost of collecting data."
 date: 2026-06-10
 order: 1
 series: "post-training"
@@ -8,7 +8,7 @@ reading: "12 min read"
 tags: ["llm", "post-training", "synthetic-data", "rejection-sampling"]
 ---
 
-I used to spend days tuning PPO hyperparameters. I eventually realized that the loss function is mostly irrelevant. Eliciting latent behaviors and shaping specific trajectories requires a massive volume of highly constrained, faithful demonstrations. You cannot crowd-source this. You have to synthesize it.
+I spent days tuning PPO hyperparameters before concluding that the loss function is mostly irrelevant. Eliciting latent behaviors and shaping specific trajectories requires a massive volume of highly constrained, faithful demonstrations. You cannot crowd-source this. You have to synthesize it.
 
 ## The Generation Engines
 
@@ -49,7 +49,7 @@ Rejection sampling implicitly executes a KL-regularized policy improvement. If t
 
 ## The Yield Flywheel
 
-The components form an aggressive compounding loop.
+Generation, verification, and training form the following loop.
 
 ```text
 +-------------------+        +--------------------+        +--------------------+

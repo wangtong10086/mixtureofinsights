@@ -1,6 +1,6 @@
 ---
 title: "When the GPU isn't an NVIDIA"
-description: "The whole LLM stack assumes CUDA. The GPU in front of you is often an Intel iGPU or a CPU. Getting a real, low-latency autoregressive TTS to stream there means rebuilding the parts you usually pip-install — the decode loop, the KV cache, the batching scheduler — on OpenVINO."
+description: "Running Qwen3-TTS on Intel hardware with OpenVINO: memory bandwidth, quantization, KV caches, and streaming batch scheduling."
 date: 2026-06-10
 order: 1
 series: "openvino-tts"
@@ -8,7 +8,7 @@ reading: "14 min read"
 tags: ["llm", "inference", "openvino", "tts", "edge"]
 ---
 
-The baseline assumption of modern AI deployment is a PCIe-attached NVIDIA accelerator. We rely on CUDA graphs, FlashAttention, and vLLM continuous batching to mask the hostile physics of autoregressive decoding. But when the target hardware is an Intel iGPU or an Arc card on a consumer edge device, the entire stack evaporates. I rebuilt the inference engine for `qwen3-tts-openvino` directly on top of OpenVINO C++ APIs to achieve true low-latency streaming without CUDA.
+The baseline assumption of modern AI deployment is a PCIe-attached NVIDIA accelerator. We rely on CUDA graphs, FlashAttention, and vLLM continuous batching to handle the costs of autoregressive decoding. When the target hardware is an Intel iGPU or an Arc card on a consumer edge device, this deployment stack is unavailable. I rebuilt the inference engine for `qwen3-tts-openvino` directly on top of OpenVINO C++ APIs for low-latency streaming without CUDA.
 
 ## The missing primitives
 
@@ -72,4 +72,4 @@ $$
 
 To stream 12 Hz frames without buffer underruns, $\text{RTF}$ must strictly be $< 1$. At 12 Hz, the absolute budget is $\approx 83\,\text{ms}$ per frame. This budget must encompass the Talker AR step, the greedy subcode generation, and the stream decoder chunk. Rebuilding the continuous batcher directly on the OpenVINO C++ bindings was the only way to squeeze the inference loop tight enough to clear that $83\,\text{ms}$ window under concurrent load. 
 
-When you don't have vLLM to hide the complexity, you are forced to confront the mechanical reality of your hardware. I mapped the tensor memory boundaries, bypassed Python thread locks, and bound the decoder to the NPU. The resulting engine doesn't just run on edge devices; it dominates them.
+I mapped the tensor memory boundaries, bypassed Python thread locks, and bound the decoder to the NPU.
