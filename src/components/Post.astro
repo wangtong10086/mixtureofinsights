@@ -1,32 +1,28 @@
 ---
 import { render } from 'astro:content';
 import Comments from './Comments.astro';
-import { t, slugOf, postUrl, seriesName, type Lang } from '../i18n';
-const { post, prev, next, lang } = Astro.props as { post: any; prev: any; next: any; lang: Lang };
+import { t, slugOf, postUrl, seriesName, seriesUrl, type Lang } from '../i18n';
+import { formatDate, type Post } from '../lib/posts';
+interface Props { post: Post; prev: Post | null; next: Post | null; lang: Lang; }
+const { post, prev, next, lang } = Astro.props;
 const tr = t(lang);
 const seriesLabel = seriesName(post.data.series, lang);
 const { Content, headings } = await render(post);
 const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
 const slug = slugOf(post.id);
 const cover = `/og/${slug}.jpg`;
-const locale = lang === 'zh' ? 'zh-CN' : 'en';
-const fmt = (d) => new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric' }).format(d);
 ---
-<div class="reading-progress"><span id="rp"></span></div>
+<div class="reading-progress" aria-hidden="true"><span id="rp"></span></div>
 
 <article class="wrap article">
-  {seriesLabel && <div class="series-label">{seriesLabel}</div>}
-  <div class="meta">{fmt(post.data.date)}{post.data.reading ? ` · ${post.data.reading}` : ''}</div>
+  {post.data.series && <a class="series-label" href={seriesUrl(lang, post.data.series)}>{seriesLabel}</a>}
+  <div class="meta"><time datetime={post.data.date.toISOString().slice(0, 10)}>{formatDate(post.data.date, lang, 'long')}</time>{post.data.reading ? ` · ${post.data.reading}` : ''}</div>
   <h1>{post.data.title}</h1>
-  <p class="lede">{post.data.description}</p>
-  {post.data.tags.length > 0 && (
-    <div class="tags">{post.data.tags.map((t2) => <span class="tag">{t2}</span>)}</div>
-  )}
 
-  <img class="cover" src={cover} alt={`${tr('post.coverAlt')} “${post.data.title}”`} width="1024" height="1024" loading="lazy" decoding="async" />
+  {post.data.showCover && <img class="cover" src={cover} alt={`${tr('post.coverAlt')} “${post.data.title}”`} width="1024" height="1024" loading="lazy" decoding="async" />}
 
   {toc.length >= 3 && (
-    <details class="toc" open>
+    <details class="toc">
       <summary>{tr('post.contents')}</summary>
       <ol>
         {toc.map((h) => (
@@ -36,10 +32,11 @@ const fmt = (d) => new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'lo
     </details>
   )}
 
-  <div class="prose"><Content /></div>
+  <div class="prose" id="article-body"><Content /></div>
+  {post.data.tags.length > 0 && <div class="tags">{post.data.tags.map((tag) => <span>{tag}</span>)}</div>}
 
   {(prev || next) && (
-    <nav class="post-nav">
+    <nav class="post-nav" aria-label={tr('series.contents')}>
       {prev ? <a href={postUrl(lang, slugOf(prev.id))}><span class="label">{tr('post.prev')}</span>{prev.data.title}</a> : <span></span>}
       {next ? <a href={postUrl(lang, slugOf(next.id))} style="text-align:right"><span class="label">{tr('post.next')}</span>{next.data.title}</a> : <span></span>}
     </nav>
@@ -50,9 +47,15 @@ const fmt = (d) => new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'lo
 
 <script is:inline>
   (function () {
-    var bar = document.getElementById('rp'); var art = document.querySelector('.article');
+    var bar = document.getElementById('rp'); var art = document.getElementById('article-body');
     if (!bar || !art) return;
-    function upd() { var h = art.offsetHeight - window.innerHeight; var p = h > 0 ? (window.scrollY - art.offsetTop) / h : 0; bar.style.width = Math.max(0, Math.min(1, p)) * 100 + '%'; }
-    document.addEventListener('scroll', upd, { passive: true }); window.addEventListener('resize', upd); upd();
+    function upd() {
+      var rect = art.getBoundingClientRect();
+      var total = rect.height - window.innerHeight;
+      var progress = total > 0 ? -rect.top / total : (rect.bottom <= window.innerHeight ? 1 : 0);
+      bar.style.width = Math.max(0, Math.min(1, progress)) * 100 + '%';
+    }
+    document.addEventListener('scroll', upd, { passive: true }); window.addEventListener('resize', upd);
+    new ResizeObserver(upd).observe(art); upd();
   })();
 </script>

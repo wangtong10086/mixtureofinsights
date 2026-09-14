@@ -1,0 +1,22 @@
+---
+import Base from '../layouts/Base.astro';
+import PostList from './PostList.astro';
+import { postsFor } from '../lib/posts';
+import { t, type Lang } from '../i18n';
+const { lang } = Astro.props as { lang: Lang };
+const tr = t(lang);
+const posts = await postsFor(lang);
+const years = [...new Set(posts.map((p) => p.data.date.getUTCFullYear()))];
+---
+<Base title={tr('nav.archive')} description={tr('archive.desc')} lang={lang}>
+  <div class="wrap index-wrap collection-page">
+    <header class="collection-intro"><h1>{tr('nav.archive')}</h1><p>{posts.length} {tr('posts.count')} · {tr('archive.desc')}</p></header>
+    {years.map((year) => (
+      <section class="archive-year" aria-labelledby={`year-${year}`}>
+        <h2 id={`year-${year}`}>{year}</h2>
+        <PostList posts={posts.filter((p) => p.data.date.getUTCFullYear() === year)} lang={lang} mode="archive" />
+      </section>
+    ))}
+  </div>
+</Base>
+

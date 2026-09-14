@@ -3,22 +3,24 @@ import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import Post from '../../components/Post.astro';
 import { langOf, slugOf } from '../../i18n';
+import { byOrder, type Post as BlogPost } from '../../lib/posts';
 
 export async function getStaticPaths() {
   const all = await getCollection('blog');
   const mine = all.filter((p) => langOf(p.id) === 'en');
   return mine.map((post) => {
-    let prev = null, next = null;
+    let prev: BlogPost | null = null, next: BlogPost | null = null;
     if (post.data.series) {
-      const sib = mine.filter((p) => p.data.series === post.data.series).sort((a, b) => a.data.order - b.data.order);
+      const sib = mine.filter((p) => p.data.series === post.data.series).sort(byOrder);
       const i = sib.findIndex((p) => p.id === post.id);
       prev = sib[i - 1] ?? null; next = sib[i + 1] ?? null;
     }
-    return { params: { slug: slugOf(post.id) }, props: { post, prev, next } };
+    const hasTranslation = all.some((p) => langOf(p.id) === 'zh' && slugOf(p.id) === slugOf(post.id));
+    return { params: { slug: slugOf(post.id) }, props: { post, prev, next, hasTranslation } };
   });
 }
-const { post, prev, next } = Astro.props;
+const { post, prev, next, hasTranslation } = Astro.props;
 ---
-<Base title={post.data.title} description={post.data.description} image={`/og/${slugOf(post.id)}.jpg`} type="article" date={post.data.date} lang="en">
+<Base title={post.data.title} description={post.data.description} image={`/og/${slugOf(post.id)}.jpg`} type="article" date={post.data.date} lang="en" hasTranslation={hasTranslation}>
   <Post post={post} prev={prev} next={next} lang="en" />
 </Base>

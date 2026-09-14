@@ -6,6 +6,17 @@ export const ui = {
   en: {
     'nav.writing': 'Writing',
     'nav.about': 'About',
+    'nav.archive': 'Archive',
+    'nav.label': 'Main navigation',
+    'nav.skip': 'Skip to content',
+    'theme.dark': 'Switch to dark theme',
+    'theme.light': 'Switch to light theme',
+    'home.title': 'Technical notes',
+    'home.recent': 'Recent writing',
+    'home.all': 'All writing',
+    'posts.count': 'articles',
+    'archive.desc': 'All articles, by year.',
+    'series.contents': 'In this series',
     'hero.title': 'Mixture of Insights.',
     'hero.desc':
       'A long-running notebook about building and taking systems apart: models, tools, infrastructure, failures, and the judgment behind technical work.',
@@ -22,6 +33,17 @@ export const ui = {
   zh: {
     'nav.writing': '文章',
     'nav.about': '关于',
+    'nav.archive': '归档',
+    'nav.label': '主导航',
+    'nav.skip': '跳转到正文',
+    'theme.dark': '切换为深色主题',
+    'theme.light': '切换为浅色主题',
+    'home.title': '技术笔记',
+    'home.recent': '最近文章',
+    'home.all': '查看全部文章',
+    'posts.count': '篇文章',
+    'archive.desc': '按年份排列的全部文章。',
+    'series.contents': '本系列文章',
     'hero.title': 'Mixture of Insights.',
     'hero.desc':
       '这里会长期记录我拆解系统、训练模型、打磨工具时留下的笔记：从一行日志到一次架构取舍，从工程细节到人的判断。写给未来的自己，也写给同样愿意把问题追到底的人。',
@@ -51,6 +73,13 @@ export function langOf(id: string): Lang {
 /** localized blog post URL */
 export function postUrl(lang: Lang, slug: string) {
   return lang === 'zh' ? `/zh/blog/${slug}/` : `/blog/${slug}/`;
+}
+
+export function localUrl(lang: Lang, path: string) {
+  return lang === 'zh' ? `/zh${path}` : path;
+}
+export function seriesUrl(lang: Lang, key: string) {
+  return localUrl(lang, `/series/${key}/`);
 }
 
 /** series registry — key -> { order on homepage, localized display name, one-line blurb } */

@@ -1,0 +1,24 @@
+---
+import Base from '../layouts/Base.astro';
+import PostList from './PostList.astro';
+import { seriesName, seriesBlurb, t, localUrl, type Lang } from '../i18n';
+import type { Post } from '../lib/posts';
+interface Props { lang: Lang; seriesKey: string; posts: Post[]; hasTranslation: boolean; }
+const { lang, seriesKey, posts, hasTranslation } = Astro.props;
+const tr = t(lang);
+---
+<Base title={seriesName(seriesKey, lang)} description={seriesBlurb(seriesKey, lang)} lang={lang} hasTranslation={hasTranslation}>
+  <div class="wrap collection-page">
+    <header class="collection-intro">
+      <a class="back-link" href={localUrl(lang, '/')}>← {tr('nav.writing')}</a>
+      <p class="eyebrow">{tr('section.series')} · {posts.length} {tr('posts.count')}</p>
+      <h1>{seriesName(seriesKey, lang)}</h1>
+      <p>{seriesBlurb(seriesKey, lang)}</p>
+    </header>
+    <section aria-label={tr('series.contents')}>
+      <h2 class="list-heading">{tr('series.contents')}</h2>
+      <PostList posts={posts} lang={lang} mode="series" />
+    </section>
+  </div>
+</Base>
+

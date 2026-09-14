@@ -1,0 +1,7 @@
+---
+import Series from '../../components/Series.astro';
+import { seriesPaths } from '../../lib/posts';
+export async function getStaticPaths() { return seriesPaths('en'); }
+---
+<Series lang="en" {...Astro.props} />
+
