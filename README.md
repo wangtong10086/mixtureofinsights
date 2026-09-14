@@ -67,6 +67,8 @@ npm test             # built routes, feeds, metadata and protected content
 See [the validation report](docs/REDESIGN_VALIDATION.md) for browser coverage,
 screenshots, Windows CLI notes and remaining checks, and
 [the editorial audit](docs/EDITORIAL_AUDIT.md) for claims needing source evidence.
+The subsequent [HumanWriting review](docs/HUMANWRITING_REVIEW.md) covers prose edits
+to all 18 articles in both languages and the checks run for that revision.
 
 ## Deploy (Cloudflare Workers)
 

@@ -4,6 +4,8 @@
 
 本文保留最初的实现任务书与验收范围；实际实现、测试结果及未测项见 [REDESIGN_VALIDATION.md](REDESIGN_VALIDATION.md)，内容疑问见 [EDITORIAL_AUDIT.md](EDITORIAL_AUDIT.md)。工作分支：`codex/editorial-redesign-20260914`；目标分支：`master`。未经作者另行授权，不合并、不部署。
 
+后续范围更新（2026-09-14）：作者指定 HumanWriting，并确认覆盖“网站全部文章”。因此，下文“两篇双语试改”是第一阶段的范围；后续文字修订覆盖现有 18 篇文章的中英文正文和摘要，详见 [HUMANWRITING_REVIEW.md](HUMANWRITING_REVIEW.md)。其余兼容性、事实保护和部署边界继续适用。
+
 ## 1. 决策：技术笔记的编辑版，而不是换一种 AI 模板
 
 定位不变：王通的中英双语技术博客，围绕后训练、Agent、推理与系统工程。改造的目的，是让读者更容易发现文章、沿项目阅读、检查论据，而不是让页面显得更昂贵，或把作者包装成另一种人设。

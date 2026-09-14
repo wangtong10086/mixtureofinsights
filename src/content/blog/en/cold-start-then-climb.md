@@ -1,6 +1,6 @@
 ---
 title: "Cold-start, then climb"
-description: "Pure RL from a base model on a hard task mostly produces high-variance garbage — and the policy-gradient math says exactly why. The fix I use is a two-stage recipe: a small SFT cold-start to give the policy a shape, then GRPO to climb. The recipe, the math, and the failure modes that actually bite."
+description: "An SFT cold-start followed by GRPO for constrained planning: seed collection, configuration, group-relative advantages, and failed sampling groups."
 date: 2026-06-10
 order: 2
 series: "post-training"
@@ -8,7 +8,7 @@ reading: "13 min read"
 tags: ["llm", "rl", "grpo", "sft", "reasoning"]
 ---
 
-Reinforcement learning improves a policy I already have. When I point it at a base model and a hard task — long-horizon planning under hard constraints — I hit the physical limit: if the policy almost never stumbles onto a good trajectory, there's nothing for RL to amplify. I get high variance, slow progress, and reward curves that look like noise. The fix is to not start cold. I rely on this recipe, driven by the underlying math, which tells me exactly when it is necessary.
+On long-horizon planning tasks with hard constraints, my base model rarely sampled a good trajectory. RL then had little useful behavior to reinforce: progress was slow, variance was high, and the reward curves looked like noise. I use a small SFT cold-start to improve that starting point before the main RL stage.
 
 ## Why I cold-start before RL: the gradient dictates it
 
@@ -24,14 +24,13 @@ With sparse 0/1 rewards, the variance of the gradient estimate scales like $p(1-
 
 ## My four-step recipe
 
-This mirrors the frontier-scale recipe detailed in [DeepSeek-R1 (DeepSeek-AI, 2025)](https://arxiv.org/abs/2501.12948), where R1-Zero acted as an ablation showing the chaos of pure RL from a base model. I adapted it to a vertical task:
+This mirrors the frontier-scale recipe detailed in [DeepSeek-R1 (DeepSeek-AI, 2025)](https://arxiv.org/abs/2501.12948), where R1-Zero acted as an ablation showing the difficulties of pure RL from a base model. I adapted it to a vertical task:
 
-1. **Explore on the base with GRPO.** I run GRPO directly on the base to push out long chain-of-thought planning — letting it discover what reasoning paths reach valid plans. I expect this stage to be ugly; I'm mining for rare good trajectories.
+1. **Explore on the base with GRPO.** I run GRPO directly on the base to push out long chain-of-thought planning — letting it discover what reasoning paths reach valid plans. At this stage, I'm looking for rare good trajectories.
 2. **Rejection-sample the seed.** I keep only the high-correctness `reasoning → plan` samples verified by my code. This is my SFT seed: small (thousands, not hundreds of thousands), clean, and in the model's own voice.
 3. **SFT cold-start.** I fine-tune the base on the seed for one to two epochs. The model now reliably produces the shape I want.
-4. **GRPO, for real.** I run the main GRPO stage with a reward that scores constraint satisfaction and feasibility, letting it climb.
+4. **Main GRPO stage.** I run the main GRPO stage with a reward that scores constraint satisfaction and feasibility, letting it climb.
 
-SFT gives the policy a shape; GRPO sharpens it against a reward.
 
 ## How the two stages map to my code
 
@@ -92,8 +91,8 @@ I know before I tune that the $\operatorname{std}$ in the denominator is a bias 
 
 ## The things that bite my runs
 
-**The dead-group problem.** If all $K$ samples fail, $r_i - \operatorname{mean}(r) = 0$. The group contributes zero gradient and I pay the full sampling cost. This is why practitioners introduced dynamic sampling in [DAPO (2025)](https://arxiv.org/abs/2503.14476), to resample or skip degenerate groups. 
+**The dead-group problem.** If all $K$ samples fail, $r_i - \operatorname{mean}(r) = 0$. The group contributes zero gradient and I pay the full sampling cost. This is why practitioners introduced dynamic sampling in [DAPO (2025)](https://arxiv.org/abs/2503.14476), to resample or skip degenerate groups.
 
-**Group size is a knob.** $K$ controls the variance of $\operatorname{mean}(r)$ as a baseline estimate. Too small (2–4), the advantage is noisy; too large, I burn rollout budget. At pass rate $p=0.05$ and $K=8$, the chance a group is live is ~34%. At $K=16$, it's ~56%. My cold-start's job is quantified: I raise $p$ until a modest $K$ keeps most groups alive. 
+**Group size is a knob.** $K$ controls the variance of $\operatorname{mean}(r)$ as a baseline estimate. Too small (2–4), the advantage is noisy; too large, I burn rollout budget. At pass rate $p=0.05$ and $K=8$, the chance a group is live is ~34%. At $K=16$, it's ~56%. My cold-start's job is quantified: I raise $p$ until a modest $K$ keeps most groups alive.
 
-By running this `SFT cold-start → GRPO` pipeline aligned with a constraint-aware reward, I lifted complex-constraint satisfaction ~12% on my internal benchmark and cut hallucinated plans without requiring a massive human-labeled dataset. The optimizer did the climbing, but the cold start built the ladder.
+By running this `SFT cold-start → GRPO` pipeline aligned with a constraint-aware reward, I lifted complex-constraint satisfaction ~12% on my internal benchmark and cut hallucinated plans without requiring a massive human-labeled dataset. The SFT seed made good trajectories available for the main GRPO stage to reinforce.

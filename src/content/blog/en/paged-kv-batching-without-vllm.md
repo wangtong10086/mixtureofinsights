@@ -1,6 +1,6 @@
 ---
 title: "Paged-KV, U8, and batching where vLLM isn't"
-description: "You have the model graphs. Now serve them — long-context, concurrent, inside an iGPU's memory budget, with none of vLLM's machinery. Four decisions that compose: paged-KV over fixed buckets, a U8 cache, full-context generation, and online batching that lives in the scheduler so one IR set serves everyone."
+description: "Serving Qwen3-TTS with OpenVINO Paged-KV, a U8 cache, full-context generation, and continuous batching across concurrent requests."
 date: 2026-06-10
 order: 3
 series: "openvino-tts"
@@ -8,13 +8,13 @@ reading: "14 min read"
 tags: ["llm", "inference", "openvino", "kv-cache", "batching"]
 ---
 
-Once the graphs are isolated, serving them concurrently within an Intel iGPU's memory bandwidth without relying on CUDA or vLLM requires explicit lower-level intervention. I implemented a continuous batching runtime layered directly over OpenVINO. This relies on four architectural constraints that strictly compose.
+After splitting the graphs, I needed to serve concurrent requests within an Intel iGPU's memory budget. I built the runtime over OpenVINO, using Paged-KV, U8 caching, full-context generation, and continuous batching.
 
 ## 1. Paged-KV over fixed buckets
 
-Static shapes compel you toward fixed cache buckets (e.g., 96 discrete context lengths). Bucketing induces internal fragmentation. If a request needs $\ell=1{,}100$ tokens and the closest bucket is $L=2{,}048$, $46\%$ of the allocated VRAM is dead weight.
+Static shapes compel you toward fixed cache buckets (e.g., 96 discrete context lengths). Bucketing induces internal fragmentation. If a request needs $\ell=1{,}100$ tokens and the closest bucket is $L=2{,}048$, $46\%$ of the allocated VRAM is unused.
 
-I replaced buckets with OpenVINO Paged-KV. In `native/qwen3_tts_ov_genai/qwen3_tts_codegen.cpp`, the runtime intercepts the exported talker seed graph and injects a `SDPAToPagedAttention` pass. This is an AST rewrite replacing standard scaled-dot-product attention with block-table lookups. 
+I replaced buckets with OpenVINO Paged-KV. In `native/qwen3_tts_ov_genai/qwen3_tts_codegen.cpp`, the runtime intercepts the exported talker seed graph and injects a `SDPAToPagedAttention` pass. This is an AST rewrite replacing standard scaled-dot-product attention with block-table lookups.
 
 ```cpp
 auto model = core.read_model(seed_xml);
@@ -26,7 +26,7 @@ ov::pass::SDPAToPagedAttention(
     .run_on_model(model);
 ```
 
-By allocating memory in blocks of $B=16$ tokens, akin to the original [PagedAttention (Kwon et al., 2023)](https://arxiv.org/abs/2309.06180) OS-level virtual memory mapping, fragmentation waste is bounded to $B \lceil \ell/B \rceil - \ell < B$. The memory waste per sequence collapses from gigabytes to under 16 tokens. 
+By allocating memory in blocks of $B=16$ tokens, akin to the original [PagedAttention (Kwon et al., 2023)](https://arxiv.org/abs/2309.06180) OS-level virtual memory mapping, fragmentation waste is bounded to $B \lceil \ell/B \rceil - \ell < B$. The memory waste per sequence collapses from gigabytes to under 16 tokens.
 
 ## 2. U8 KV Cache quantization
 
@@ -38,7 +38,7 @@ $$
 
 For an $8{,}000$-token context on a mid-size talker at fp16 ($\text{bytes}=2$), a single stream consumes $\approx 0.9\,\text{GB}$. Four concurrent streams demand $3.6\,\text{GB}$, saturating the iGPU shared RAM before weights are even loaded.
 
-I forced the cache to U8 (8-bit, $\text{bytes}=1$), halving the memory footprint and the bandwidth tax per decode step. This per-channel quantization introduces bounded error $|x - \hat{x}| \le \tfrac{1}{2}\,\text{scale}$ but yields a massive $2\times$ throughput increase. This is enforced via `--kv-cache-profile auto` in [`qwen3_tts_ov/cli.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/cli.py).
+I set the cache to U8 (8-bit, $\text{bytes}=1$), halving the memory footprint and the bandwidth tax per decode step. This per-channel quantization introduces bounded error $|x - \hat{x}| \le \tfrac{1}{2}\,\text{scale}$ but yields a $2\times$ throughput increase. This is enforced via `--kv-cache-profile auto` in [`qwen3_tts_ov/cli.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/cli.py).
 
 ## 3. Full-context execution
 
@@ -73,4 +73,4 @@ if kind in {2, 3}:
 
 Batching pushes arithmetic intensity up. At batch $B$, weights are fetched once and amortized across $B$ tokens, shifting the operation from bandwidth saturation toward the compute roofline. The same base graph handles single-user isolation and multi-user concurrency without recompilation.
 
-To squeeze the final latency metrics, I aggressively compressed the talker seed graph using INT8 symmetric quantization and fused grouped-query attention (`int8_sym_batch_fused_gqa`) via [`scripts/compress_openvino_weights.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/scripts/compress_openvino_weights.py), and bound the streaming decoder to the Intel NPU. The entire pipeline sits exactly at the physical limits of the bus.
+To reduce latency further, I compressed the talker seed graph using INT8 symmetric quantization and fused grouped-query attention (`int8_sym_batch_fused_gqa`) via [`scripts/compress_openvino_weights.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/scripts/compress_openvino_weights.py), and bound the streaming decoder to the Intel NPU. The entire pipeline reaches the bus's physical bandwidth limit.

@@ -1,6 +1,6 @@
 ---
 title: "别用 adb shell 代替 App 的眼睛"
-description: "shell 看到的世界，普通 App 未必看得到。要审计检测面，得从 App 自己的 UID、命名空间和 SELinux 域里看。"
+description: "用 App 的 UID、SELinux 域、挂载命名空间和进程映射检查检测面，并区分各项检查能看到什么。"
 date: 2026-06-10
 order: 4
 series: "android-hardening"
@@ -8,9 +8,9 @@ reading: "9 分钟"
 tags: ["android", "selinux", "auditing", "nsenter"]
 ---
 
-在确认上层逻辑阻断后，我需要做最后的渗透审计。`adb shell` 是一个充满欺骗性的环境：它以 UID 2000 运行于 `shell` SELinux 域中，看到的是未经 Magisk 和 Shamiko 处理的全局挂载表。以它的视角去排查 `untrusted_app` 能获取的特征，会产生大量的假阴性和假阳性。
+完成上层拦截后，我要检查 App 还能读到哪些特征。直接使用 `adb shell` 并不能代表 App 的环境：它以 UID 2000 运行于 `shell` SELinux 域中，看到的是未经 Magisk 和 Shamiko 处理的全局挂载表。以它的视角去排查 `untrusted_app` 能获取的特征，会产生大量的假阴性和假阳性。
 
-为了复现 App 真正面临的沙盒约束，必须降级到它们的物理极限。我用三种透镜剥开了这个状态空间：
+我分别检查了 App 的 SELinux 约束、挂载命名空间和内存映射：
 
 ```text
 [ Lens 1: SELinux Bounds ]
@@ -26,11 +26,11 @@ cat /proc/<pid>/maps | grep -iE 'zygisk|lsposed'
 (Raw memory mappings managed by kernel)
 ```
 
-在隔离视界下，Magisk 守护进程、Zygote 以及其他进程因内核 `hidepid=invisible` 挂载选项而彻底隐身。`/proc/<pid>/maps` 中未见任何 Zygisk 注入痕迹。但扫描后仍有两处高危泄漏点。第一处是 `adb_enabled=1`，关闭 USB 调试即可抹除。第二处则触及了 Android 的核心通信管道：LineageOS 的自定义系统服务。
+在这个隔离环境下，`hidepid=invisible` 挂载选项使 App 看不到 Magisk 守护进程、Zygote 及其他进程。`/proc/<pid>/maps` 中未见任何 Zygisk 注入痕迹。检查仍发现两处特征：`adb_enabled=1`，可以通过关闭 USB 调试消除；以及 LineageOS 的自定义系统服务。
 
 服务注册表对应用是全局可见的。一个原生层的 RASP 可以通过 `ServiceManager.getService("lineagehardware")` 直接定位到特征。我们在 Java 层注入的任何 hook 都无法拦截到底层的 C++ Binder 调用。
 
-既然用户态挡不住，那就把防御下沉到内核的强制访问控制。我在 `fuxi_prop_spoof/sepolicy.rule` 注入了底层的 [SELinux 拒绝规则](https://source.android.com/docs/security/features/selinux)，切断所有不可信域对特定服务类型的 `find` 权限：
+为限制原生代码对这些服务的查询，我在 `fuxi_prop_spoof/sepolicy.rule` 注入了底层的 [SELinux 拒绝规则](https://source.android.com/docs/security/features/selinux)，切断所有不可信域对特定服务类型的 `find` 权限：
 
 ```text
 deny untrusted_app lineage_hardware_service    service_manager { find }
@@ -39,4 +39,4 @@ deny isolated_app  lineage_hardware_service    service_manager { find }
 deny ephemeral_app lineage_hardware_service    service_manager { find }
 ```
 
-这是一组笛卡尔积。三类 App 域与十类服务类型交叉，生成了 30 条不可逾越的内核拦截规则。我故意放开了系统域的访问，于是 Lineage 的内置进程依旧能够正常解析服务并工作，但对于第三方 App 而言，这些服务从 `service_manager` 的返回结果中物理蒸发了。这层封杀不依赖于目标程序的行为，完全是由内核强制生效的拓扑隔绝。
+三类 App 域与十类服务类型交叉，共生成 30 条拒绝规则。系统域仍可访问，因此 Lineage 的内置进程能正常解析服务并工作，第三方 App 则无法通过 `service_manager` 发现这些服务。限制由内核执行，不依赖目标程序使用哪种调用方式。

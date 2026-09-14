@@ -19,7 +19,19 @@ const routeFile = (path) => {
 const pages = new Map(files.map((file) => ['/' + file.replaceAll('\\', '/').replace(/^dist\//, '').replace(/index\.html$/, ''), read(file)]));
 const current = snapshot();
 const baseline = JSON.parse(read('scripts/fixtures/content-baseline.json'));
-const editable = new Set(['en', 'zh'].flatMap((lang) => ['post-training-is-a-data-problem', 'when-the-gpu-isnt-an-nvidia'].map((s) => `${lang}/${s}.md`)));
+// The author's 2026-09-14 follow-up extends prose editing to all 18 bilingual posts.
+// The original baseline still protects identity, code, math, headings and sources.
+const editableSlugs = [
+  '01-the-google-wallet-wall', '02-stockmask', '03-the-logcat-leak',
+  '04-auditing-from-the-apps-eyes', '05-what-you-can-and-cant-hide',
+  '06-paypal-crash-two-root-signals', 'a-control-plane-for-renting-gpus',
+  'orbit-a-task-agnostic-core', 'orbit-the-bundle-is-the-contract',
+  'post-training-is-a-data-problem', 'cold-start-then-climb', 'what-are-you-rewarding',
+  'dpo-when-you-cant-afford-rlhf', 'self-play-and-the-games-models-teach-themselves',
+  'when-the-gpu-isnt-an-nvidia', 'how-qwen3-tts-makes-a-frame',
+  'paged-kv-batching-without-vllm', 'nvim-yank-osc52',
+];
+const editable = new Set(['en', 'zh'].flatMap((lang) => editableSlugs.map((s) => `${lang}/${s}.md`)));
 for (const id of Object.keys(baseline)) assert.ok(current[id], `Missing original article ${id}`);
 for (const [id, before] of Object.entries(baseline)) {
   const after = current[id];

@@ -12,9 +12,9 @@ The baseline assumption of modern AI deployment is a PCIe-attached NVIDIA accele
 
 ## The missing primitives
 
-When you step off NVIDIA, you lose the battle-tested memory management primitives. [FlashAttention (Dao et al., 2022)](https://arxiv.org/abs/2205.14135) avoids materializing the $O(n^2)$ attention matrix in high-bandwidth memory by tiling in SRAM. Without it, you eat raw memory bandwidth on every attention layer. You lose CUDA graphs, meaning you pay driver launch overheads for every kernel across every token. You lose PagedAttention, meaning you default to padded tensors and catastrophic internal memory fragmentation. 
+Moving off NVIDIA also removes the memory-management primitives this stack relies on. [FlashAttention (Dao et al., 2022)](https://arxiv.org/abs/2205.14135) avoids materializing the $O(n^2)$ attention matrix in high-bandwidth memory by tiling in SRAM. Without it, every attention layer consumes more memory bandwidth. Without CUDA graphs, each kernel launch incurs driver overhead for every token. Without PagedAttention, the default is padded tensors with substantial internal fragmentation.
 
-You cannot simply export an ONNX graph and expect 12 Hz multi-codebook TTS to stream. The system requires an active KV cache manager, an online batching scheduler, and a chunked neural codec pipeline operating in real-time. 
+You cannot simply export an ONNX graph and expect 12 Hz multi-codebook TTS to stream. The system requires an active KV cache manager, an online batching scheduler, and a chunked neural codec pipeline operating in real-time.
 
 ```text
 +-----------+        +-------------------+        +---------------------------+
@@ -35,7 +35,7 @@ $$
 I \;=\; \frac{\text{FLOPs}}{\text{bytes read}}
 $$
 
-For a forward pass with $N$ parameters and $b$ bytes per parameter, yielding a single token requires $\approx 2N$ FLOPs. Thus, $I \approx 2/b$. For fp16, this is roughly 1 FLOP per byte. Modern hardware has a theoretical ridge point in the tens to hundreds of FLOPs per byte. Because $I$ is so low, the compute cores starve while waiting for the memory bus. You are entirely memory-bandwidth bound. 
+For a forward pass with $N$ parameters and $b$ bytes per parameter, yielding a single token requires $\approx 2N$ FLOPs. Thus, $I \approx 2/b$. For fp16, this is roughly 1 FLOP per byte. Modern hardware has a theoretical ridge point in the tens to hundreds of FLOPs per byte. Because $I$ is so low, the compute cores starve while waiting for the memory bus. You are entirely memory-bandwidth bound.
 
 The physical time floor for a single token generation is bounded by:
 
@@ -60,7 +60,7 @@ except Exception as first_error:
     return core.compile_model(str(model_path), "CPU", fallback_config)
 ```
 
-Because OpenVINO compiles the JIT payload on first use, the initial startup incurs a massive JIT penalty. I built an aggressive cache-warmup routine that triggers dummy compilation passes immediately on boot, ensuring the first actual WebSocket request hits a hot cache.
+OpenVINO compiles on first use, which adds substantial startup latency. I added a warmup routine that triggers dummy compilation passes at boot, so the cache is ready for the first WebSocket request.
 
 ## Real-Time Factor
 
@@ -70,6 +70,6 @@ $$
 \text{RTF} \;=\; \frac{\text{compute time}}{\text{duration of audio produced}}
 $$
 
-To stream 12 Hz frames without buffer underruns, $\text{RTF}$ must strictly be $< 1$. At 12 Hz, the absolute budget is $\approx 83\,\text{ms}$ per frame. This budget must encompass the Talker AR step, the greedy subcode generation, and the stream decoder chunk. Rebuilding the continuous batcher directly on the OpenVINO C++ bindings was the only way to squeeze the inference loop tight enough to clear that $83\,\text{ms}$ window under concurrent load. 
+To stream 12 Hz frames without buffer underruns, $\text{RTF}$ must strictly be $< 1$. At 12 Hz, the absolute budget is $\approx 83\,\text{ms}$ per frame. This budget must encompass the Talker AR step, the greedy subcode generation, and the stream decoder chunk. Rebuilding the continuous batcher directly on the OpenVINO C++ bindings was the only way to squeeze the inference loop tight enough to clear that $83\,\text{ms}$ window under concurrent load.
 
 I mapped the tensor memory boundaries, bypassed Python thread locks, and bound the decoder to the NPU.

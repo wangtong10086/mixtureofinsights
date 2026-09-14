@@ -1,0 +1,178 @@
+[
+  {
+    "h1": 1,
+    "lead": "PayPal used to work on this phone. Magisk’s Root hiding and an application-list hiding tool had been enough. Later, opening the app caused it to exit.",
+    "math": 0,
+    "mathErrors": 0,
+    "overflow": false,
+    "theme": "light",
+    "tocOpen": false,
+    "url": "/blog/06-paypal-crash-two-root-signals/",
+    "width": 1440
+  },
+  {
+    "h1": 1,
+    "lead": "The previous posts used GRPO for tasks with verifiable rewards and a need for online exploration. My role-play models posed a different problem: staying in character and using a preferred tone. There was no verifier for those judgments and no need for online RL, so a full RLHF loop added unnecessary cost.",
+    "math": 14,
+    "mathErrors": 0,
+    "overflow": false,
+    "theme": "light",
+    "tocOpen": false,
+    "url": "/blog/dpo-when-you-cant-afford-rlhf/",
+    "width": 1440
+  },
+  {
+    "h1": 1,
+    "lead": "My separation of the local control plane from the remote execution plane relies on one critical invariant: the execution core has no concept of what a “training job” or an “eval job” is. The executor only understands generic bundles, physical placement, launch modes, and artifact collection.",
+    "math": 0,
+    "mathErrors": 0,
+    "overflow": false,
+    "theme": "light",
+    "tocOpen": false,
+    "url": "/blog/orbit-a-task-agnostic-core/",
+    "width": 1440
+  },
+  {
+    "h1": 1,
+    "lead": "Qwen3-TTS generates audio through a 12 Hz inference loop. Its stages have different compute and memory requirements, so I exported them as separate OpenVINO graphs. This post follows a frame through Talker, Subcode, and the streaming Decoder.",
+    "math": 20,
+    "mathErrors": 0,
+    "overflow": false,
+    "theme": "light",
+    "tocOpen": false,
+    "url": "/blog/how-qwen3-tts-makes-a-frame/",
+    "width": 1440
+  },
+  {
+    "h1": 1,
+    "lead": "PayPal 以前能正常运行。当时主要依靠 Magisk 的 Root 隐藏和隐藏应用列表，后来却变成了打开即退出。",
+    "math": 0,
+    "mathErrors": 0,
+    "overflow": false,
+    "theme": "light",
+    "tocOpen": false,
+    "url": "/zh/blog/06-paypal-crash-two-root-signals/",
+    "width": 1440
+  },
+  {
+    "h1": 1,
+    "lead": "搭建多角色扮演后端服务时，我遇到了模型频繁“出戏”（Out of Character）的问题。比如一个傲娇的大小姐设定，推理到第十轮时突然跳出“作为一个人工智能助手，我很乐意为您解答”的死板回复。",
+    "math": 6,
+    "mathErrors": 0,
+    "overflow": false,
+    "theme": "light",
+    "tocOpen": false,
+    "url": "/zh/blog/dpo-when-you-cant-afford-rlhf/",
+    "width": 1440
+  },
+  {
+    "h1": 1,
+    "lead": "ORBIT 起初只跑训练，后来加入评测和数据采集。每加一种任务，我就往 runner 里加一条分支。这样接入很快，但任务各自的配置和处理逻辑也都堆进了执行器。",
+    "math": 2,
+    "mathErrors": 0,
+    "overflow": false,
+    "theme": "light",
+    "tocOpen": false,
+    "url": "/zh/blog/orbit-a-task-agnostic-core/",
+    "width": 1440
+  },
+  {
+    "h1": 1,
+    "lead": "在上一篇中，我们在 Ultra x7 358h 平台上，从底层的内存带宽、量化算子和连续批处理框架入手，完成了推理环境的调整。但把 Qwen3-TTS 整体导出为一个 OpenVINO IR 模型后，核显上的生成仍然很慢，高并发时内存也会迅速增长到 OOM。",
+    "math": 12,
+    "mathErrors": 0,
+    "overflow": false,
+    "theme": "light",
+    "tocOpen": false,
+    "url": "/zh/blog/how-qwen3-tts-makes-a-frame/",
+    "width": 1440
+  },
+  {
+    "h1": 1,
+    "lead": "PayPal used to work on this phone. Magisk’s Root hiding and an application-list hiding tool had been enough. Later, opening the app caused it to exit.",
+    "math": 0,
+    "mathErrors": 0,
+    "overflow": false,
+    "theme": "dark",
+    "tocOpen": false,
+    "url": "/blog/06-paypal-crash-two-root-signals/",
+    "width": 390
+  },
+  {
+    "h1": 1,
+    "lead": "The previous posts used GRPO for tasks with verifiable rewards and a need for online exploration. My role-play models posed a different problem: staying in character and using a preferred tone. There was no verifier for those judgments and no need for online RL, so a full RLHF loop added unnecessary cost.",
+    "math": 14,
+    "mathErrors": 0,
+    "overflow": false,
+    "theme": "dark",
+    "tocOpen": false,
+    "url": "/blog/dpo-when-you-cant-afford-rlhf/",
+    "width": 390
+  },
+  {
+    "h1": 1,
+    "lead": "My separation of the local control plane from the remote execution plane relies on one critical invariant: the execution core has no concept of what a “training job” or an “eval job” is. The executor only understands generic bundles, physical placement, launch modes, and artifact collection.",
+    "math": 0,
+    "mathErrors": 0,
+    "overflow": false,
+    "theme": "dark",
+    "tocOpen": false,
+    "url": "/blog/orbit-a-task-agnostic-core/",
+    "width": 390
+  },
+  {
+    "h1": 1,
+    "lead": "Qwen3-TTS generates audio through a 12 Hz inference loop. Its stages have different compute and memory requirements, so I exported them as separate OpenVINO graphs. This post follows a frame through Talker, Subcode, and the streaming Decoder.",
+    "math": 20,
+    "mathErrors": 0,
+    "overflow": false,
+    "theme": "dark",
+    "tocOpen": false,
+    "url": "/blog/how-qwen3-tts-makes-a-frame/",
+    "width": 390
+  },
+  {
+    "h1": 1,
+    "lead": "PayPal 以前能正常运行。当时主要依靠 Magisk 的 Root 隐藏和隐藏应用列表，后来却变成了打开即退出。",
+    "math": 0,
+    "mathErrors": 0,
+    "overflow": false,
+    "theme": "dark",
+    "tocOpen": false,
+    "url": "/zh/blog/06-paypal-crash-two-root-signals/",
+    "width": 390
+  },
+  {
+    "h1": 1,
+    "lead": "搭建多角色扮演后端服务时，我遇到了模型频繁“出戏”（Out of Character）的问题。比如一个傲娇的大小姐设定，推理到第十轮时突然跳出“作为一个人工智能助手，我很乐意为您解答”的死板回复。",
+    "math": 6,
+    "mathErrors": 0,
+    "overflow": false,
+    "theme": "dark",
+    "tocOpen": false,
+    "url": "/zh/blog/dpo-when-you-cant-afford-rlhf/",
+    "width": 390
+  },
+  {
+    "h1": 1,
+    "lead": "ORBIT 起初只跑训练，后来加入评测和数据采集。每加一种任务，我就往 runner 里加一条分支。这样接入很快，但任务各自的配置和处理逻辑也都堆进了执行器。",
+    "math": 2,
+    "mathErrors": 0,
+    "overflow": false,
+    "theme": "dark",
+    "tocOpen": false,
+    "url": "/zh/blog/orbit-a-task-agnostic-core/",
+    "width": 390
+  },
+  {
+    "h1": 1,
+    "lead": "在上一篇中，我们在 Ultra x7 358h 平台上，从底层的内存带宽、量化算子和连续批处理框架入手，完成了推理环境的调整。但把 Qwen3-TTS 整体导出为一个 OpenVINO IR 模型后，核显上的生成仍然很慢，高并发时内存也会迅速增长到 OOM。",
+    "math": 12,
+    "mathErrors": 0,
+    "overflow": false,
+    "theme": "dark",
+    "tocOpen": false,
+    "url": "/zh/blog/how-qwen3-tts-makes-a-frame/",
+    "width": 390
+  }
+]

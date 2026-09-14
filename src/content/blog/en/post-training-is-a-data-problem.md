@@ -12,7 +12,7 @@ I spent days tuning PPO hyperparameters before concluding that the loss function
 
 ## The Generation Engines
 
-I built four discrete data-manufacturing modules under [`orbit/data/`](https://github.com/wangtong10086/orbit/tree/main/orbit/data/). They all output a uniform JSONL schema (`messages`, `env`, `score`, `task_id`).
+I built four data-generation and verification modules under [`orbit/data/`](https://github.com/wangtong10086/orbit/tree/main/orbit/data/). They all output a uniform JSONL schema (`messages`, `env`, `score`, `task_id`).
 
 **1. Deterministic Synthetic Trajectories.** I bypass the LLM entirely for scaffolding. In [`orbit/data/liveweb_teacher_gen.py`](https://github.com/wangtong10086/orbit/blob/main/orbit/data/liveweb_teacher_gen.py), my `TeacherGenerator` replays cached web topologies:
 
@@ -26,11 +26,11 @@ for record in result.records:
     record["score"] = record.get("metadata", {}).get("score", 1.0)
 ```
 
-I generate rigid, multi-tool trajectories deterministically. This seeds the model with structural syntax before it ever attempts to hallucinate reasoning.
+These deterministic multi-tool trajectories give the model examples of the required structure before reasoning training.
 
 **2. Self-Play.** For well-defined environments, I implemented an OpenSpiel registry in [`orbit/data/game_gen.py`](https://github.com/wangtong10086/orbit/blob/main/orbit/data/game_gen.py). MCTS search or CFR policy snapshots play out matches. The generators only keep the winning trajectories.
 
-**3. Rejection Sampling.** The core pipeline mechanism. I sample massively, enforce a strict verifier, and discard the failures. In `orbit/data/sft.py`, `filter_quality` executes the dedup logic:
+**3. Rejection Sampling.** I generate many samples, apply the verifier, and discard failures. In `orbit/data/sft.py`, `filter_quality` executes the dedup logic:
 
 ```python
 filtered = [r for r in records if r.get("score", 0.0) >= min_score]
@@ -45,7 +45,7 @@ if dedup:
 
 Rejection sampling implicitly executes a KL-regularized policy improvement. If the pass rate is $p$, best-of-$N$ guarantees at least one success with probability $1-(1-p)^N$. The resulting distribution is bounded at a KL divergence of roughly $\log N$. I get the policy improvement of RL without the rollout volatility, mirroring the dataset distillation mechanics proven in LLM alignment pipelines ([Touvron et al., 2023](https://arxiv.org/abs/2307.09288)).
 
-**4. The Verifier.** Human grading is geometrically impossible at scale. I rely entirely on programmatic constraints. `StaticTraceVerifier` in [`orbit/verifiers/static.py`](https://github.com/wangtong10086/orbit/blob/main/orbit/verifiers/static.py) maps trajectories to terminal scores. 
+**4. The Verifier.** Human grading is impossible at this scale, so I rely entirely on programmatic constraints. `StaticTraceVerifier` in [`orbit/verifiers/static.py`](https://github.com/wangtong10086/orbit/blob/main/orbit/verifiers/static.py) maps trajectories to terminal scores.
 
 ## The Yield Flywheel
 
@@ -69,6 +69,6 @@ $$
 \frac{p_t}{1-p_t} = g^t \cdot \frac{p_0}{1-p_0}
 $$
 
-If I start with a $5\%$ yield ($p_0=0.05$) and $g=2$, four passes push the yield to $46\%$. But if the verifier is noisy, $g$ collapses to $1$. 
+If I start with a $5\%$ yield ($p_0=0.05$) and $g=2$, four passes push the yield to $46\%$. But if the verifier is noisy, $g$ collapses to $1$.
 
-I dedicate zero engineering time to the training code; `build_ms_swift_dataset` is a static mapping function. I spend 90% of my compute and engineering budget aggressively optimizing the verifier rubric. Yield directly dictates compute cost. At a 5% pass rate, extracting 10,000 clean trajectories costs 200,000 generation passes. Tuning the verifier to halve that ratio is significantly more impactful than optimizing GPU utilization.
+I dedicate zero engineering time to the training code; `build_ms_swift_dataset` is a static mapping function. I spend 90% of my compute and engineering budget improving the verifier rubric. Yield directly dictates compute cost. At a 5% pass rate, extracting 10,000 clean trajectories costs 200,000 generation passes. Tuning the verifier to halve that ratio is significantly more impactful than optimizing GPU utilization.

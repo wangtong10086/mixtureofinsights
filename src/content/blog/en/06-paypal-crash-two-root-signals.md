@@ -1,6 +1,6 @@
 ---
 title: "Debugging a PayPal startup crash: a device-number gap and an App Zygote errno"
-description: "A real Android investigation using offline A/B/A, boot traces, bounded eBPF, an independent APK, and kernel compatibility checks—with a black-screen incident along the way. Two changes to existing components restored startup without another module."
+description: "Tracing a PayPal startup failure to Magisk's filesystem device-number allocation and an App Zygote SELinux error, then testing the two changes and their limits."
 date: 2026-09-14
 order: 6
 series: "android-hardening"
@@ -10,11 +10,11 @@ tags: ["android", "debugging", "magisk", "selinux", "ebpf", "kernel"]
 
 PayPal used to work on this phone. Magisk's Root hiding and an application-list hiding tool had been enough. Later, opening the app caused it to exit.
 
-That symptom invites configuration roulette: another hiding module, another scope change, another version, another reboot. Each experiment changes the environment, but it may add little knowledge. The useful turning point was to stop editing settings and ask a narrower question: **what does this particular PayPal build read, and which result makes it reject the environment?**
+Changing modules, scopes, or versions could alter the result without explaining it. The investigation narrowed the question to what this PayPal build reads and which return value makes it reject the environment.
 
 The investigation identified two independent local signals. One came from Magisk's early-boot allocation of anonymous filesystem device numbers. The other came from different SELinux errors returned to an App Zygote attempting context transitions. After combining two changes to existing components, PayPal reached its system fingerprint prompt. The phone's operator completed authentication and confirmed that the app opened and remained usable on the resulting page. No additional persistent module, PayPal downgrade, or app-data reset was needed.
 
-The path included a black screen during an ART probe experiment and a misleading kernel-symbol compatibility report. Those failures belong in the record alongside the successful changes.
+The investigation also encountered a black screen during an ART probe experiment and a false report of missing kernel symbols. Both affected how the later tests were run.
 
 ## Separate the current failure from its historical trigger
 
@@ -61,7 +61,7 @@ A suspicious number was not enough reason to replace a boot image. First, I exec
 
 Within that function and captured input set, the field was sufficient to flip the check.
 
-This was an offline A/B/A. JNI object handling, some libc operations, and parts of the environment used explicit substitutes; unknown calls stopped execution. It was neither a whole-device A/B/A nor evidence that PayPal had recovered. Keeping those states separate matters throughout the investigation.
+This was an offline A/B/A: JNI object handling, some libc operations, and parts of the environment used explicit substitutes, while unknown calls stopped execution. It was not a whole-device A/B/A and did not establish that PayPal had recovered.
 
 ## Change the boot sequence that creates the first signal
 
@@ -97,7 +97,7 @@ The candidate booted normally. Device numbers matched the prediction, and the ac
 
 To identify the remaining branch, the investigation tried to capture fixed detector arguments at ART reflection entry points. `ArtMethod::Invoke` did not yield the target event. During a subsequent uprobe experiment at `art_quick_invoke_static_stub`, opening the app was followed by an ADB disconnect and a black or frozen display.
 
-No panic log established the mechanism, and pstore was empty after recovery. The supported statement is that the failure occurred during that probe experiment. It would be unjustified to blame the Magisk mount change, or to present a specific ART, CFI, or kernel explanation as proven.
+No panic log explained the black screen, and pstore was empty after recovery. It occurred during the probe experiment, but the cause remains unknown. The evidence does not establish a link to the Magisk mount change or a specific ART, CFI, or kernel mechanism.
 
 Observation stopped. The operator entered Fastboot, the verified original `init_boot` was restored, and boot images, Root, and configuration were checked. The operator confirmed the phone worked again. The ART probe script received a runtime guard and was retired from subsequent work.
 
@@ -144,7 +144,7 @@ Running identical writes in three actual environments produced a useful distinct
 
 Testing only an ordinary application or the final isolated child would have missed the discriminating row. App Zygote needs a different permission path to specialize its children. UID, SELinux domain, thread state, and lifecycle stage all belong in the experiment's inputs.
 
-The first APK revision accidentally appended a NUL. It returned the same results, but was still corrected to the real byte lengths, rebuilt, and retested. The earlier output remained separately labeled. A coincidentally identical result does not excuse a mismatched reproduction.
+The first APK revision accidentally appended a NUL. Although its results matched, it was corrected to use the exact byte lengths, rebuilt, and retested. The earlier output remained separately labeled.
 
 Static decision logic explained the distinction: EINVAL was excluded from a hit-label list, while EPERM was included. A nonempty list, with preceding service state normal, could generate `0x122`. The final aggregate code was not captured directly from the live app. That number is a static derivation, supported by observed inputs and independent reproduction, rather than a runtime measurement.
 
@@ -219,7 +219,7 @@ This table distinguishes what was measured in each stage:
 | Kernel change only | Original Magisk image retained | Independent APK and real calls verified | Still rejected |
 | Combined changes | Final values 17, 18, 19, 20 | Same verified kernel; no probe reattached during acceptance | Opened and stayed after fingerprint authentication |
 
-This was not a fully remeasured factorial experiment. Nor were every proposed whole-device A/B/A and repeated cold-start cycle completed. The recorded evidence supports the result for this build while preserving the actual test scope.
+Not every cell was remeasured, and the planned whole-device A/B/A tests and repeated cold starts were not all completed. The recorded evidence supports the result for this build within that test scope.
 
 ## Acceptance includes the rest of the device
 
@@ -256,4 +256,4 @@ The [attachment README](/notes/paypal-root-crash-2026-09-14/README.md), [sanitiz
 
 The public summary selects technical fields from local records, omitting device identifiers, personal paths, and account UI. It is neither a raw-log archive nor independent third-party reproduction. Original images, captures, and recovery materials remain local. The repository's `docs/SOURCES.md` records code and evidence anchors for future revisions.
 
-The final repair consists of two local changes to existing Magisk and kernel code. They still carry maintenance cost. The next update should prompt a fresh check of whether the differences exist and whether the changes remain appropriate, rather than an automatic stack of old patches.
+Both changes remain maintenance work: after an update, check whether these differences still exist before applying the patches again.

@@ -1,6 +1,6 @@
 ---
 title: "StockMask：不碰 App，也能造一层原厂感"
-description: "HideMyApplist 藏得住包名，藏不住系统特性。更稳的办法是在 system_server 里按调用方过滤回答，而不是把钩子塞进每个 App。"
+description: "在 system_server 中按调用方 UID 过滤 LineageOS 特性和权限，让查询这些信息的 App 无需加载 hook 模块。"
 date: 2026-06-09
 order: 2
 series: "android-hardening"
@@ -8,7 +8,7 @@ reading: "12 分钟"
 tags: ["android", "lsposed", "lineageos", "system_server"]
 ---
 
-我原以为用 HideMyApplist 藏住包名就足够了，但银行 App 依旧能精准判定设备处于非原生环境。这说明旁路泄露依然存在。通过跟踪跨进程调用，我发现 PackageManager 会直接把系统特性和自定义权限泄露给调用方。
+用 HideMyApplist 隐藏包名后，银行 App 仍能识别出非原生环境。我跟踪跨进程调用，发现 PackageManager 还会向调用方返回 LineageOS 的系统特性和自定义权限。
 
 ```text
 $ pm list features | grep lineage
@@ -18,9 +18,9 @@ $ pm list permissions | grep lineage
 permission:lineageos.permission.TRUST_INTERFACE
 ```
 
-App 只需调用一次 [`hasSystemFeature()`](https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/core/java/android/app/ApplicationPackageManager.java)，这些特征就暴露无遗。如果修改 `/product/etc/permissions/` 的 XML，会导致 `system_server` 里的原生服务（如 livedisplay）因断言失败而崩溃。必须在 `system_server` 响应阶段，根据调用方的真实身份实施动态过滤。
+App 只需调用一次 [`hasSystemFeature()`](https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/core/java/android/app/ApplicationPackageManager.java)，就能查到这些特征。如果修改 `/product/etc/permissions/` 的 XML，会导致 `system_server` 里的原生服务（如 livedisplay）因断言失败而崩溃。必须在 `system_server` 响应阶段，根据调用方的真实身份实施动态过滤。
 
-我将钩子挂在 `PackageManagerService` (PMS)，它是系统唯一的真相源。Binder 事务会打上内核强制的 `CallingUid`，这个设计天然免疫了用户态的伪造：
+我将钩子挂在负责回答查询的 `PackageManagerService` (PMS)。Binder 事务中的 `CallingUid` 由内核提供，用户态无法伪造，因此可以据此区分调用方：
 
 ```text
 +-------------------+           Binder IPC           +-------------------------+
@@ -35,7 +35,7 @@ App 只需调用一次 [`hasSystemFeature()`](https://cs.android.com/android/pla
 +-------------------+ <----------------------------- | return true (Original)  |
 ```
 
-我在 [`com.stockmask.Main`](https://github.com/wangtong10086/mixtureofinsights/blob/main/code/stockmask/src/com/stockmask/Main.java) 中实现了一个极简的过滤逻辑，严格判定 appId 是否大于 `10000`（即第三方应用）：
+我在 [`com.stockmask.Main`](https://github.com/wangtong10086/mixtureofinsights/blob/main/code/stockmask/src/com/stockmask/Main.java) 中按 appId 过滤，判定它是否大于 `10000`（即第三方应用）：
 
 ```java
 private static boolean shouldFilter() {
@@ -64,4 +64,4 @@ private final XC_MethodHook hasFeatureHook = new XC_MethodHook() {
 
 对于获取特性列表的 `getSystemAvailableFeatures()`，在 Android 14+ 架构中，数据读取被重构为了无锁的写时复制快照（`ComputerEngine`）。不仅要 hook PMS，还要覆盖 `IPackageManagerImpl`。其返回类型被包装在 [`ParceledListSlice`](https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/core/java/android/content/pm/ParceledListSlice.java) 中。我需要将其拆包、过滤，再重新封装。
 
-权限过滤（`getAllPermissionGroups` 等）采用完全对称的架构。将逻辑收敛在 `system_server` 的意义在于，App 自己的内存空间保持绝对洁净。RASP 扫描自身的 `/proc/self/maps` 时，看不到任何注入的模块和被篡改的方法签名。谎言在 Binder 返回包抵达 App 内存之前就已经编织完成。
+权限过滤（`getAllPermissionGroups` 等）也按调用方处理。过滤发生在 `system_server` 中，App 进程无需加载模块。RASP 扫描自身的 `/proc/self/maps` 时，看不到注入的模块和被修改的方法签名；Binder 返回之前，响应已经改好。
