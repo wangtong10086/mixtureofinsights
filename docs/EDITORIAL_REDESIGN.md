@@ -2,7 +2,7 @@
 
 日期：2026-09-14。目标仓库：`wangtong10086/mixtureofinsights`。
 
-本文是实现任务书，不是已经完成的改版报告。除文档和 Skill 外，下面的页面、测试与文章修改均需实现并验证。工作分支：`codex/editorial-redesign-20260914`；目标分支：`master`。未经作者另行授权，不合并、不部署。
+本文保留最初的实现任务书与验收范围；实际实现、测试结果及未测项见 [REDESIGN_VALIDATION.md](REDESIGN_VALIDATION.md)，内容疑问见 [EDITORIAL_AUDIT.md](EDITORIAL_AUDIT.md)。工作分支：`codex/editorial-redesign-20260914`；目标分支：`master`。未经作者另行授权，不合并、不部署。
 
 ## 1. 决策：技术笔记的编辑版，而不是换一种 AI 模板
 
