@@ -8,7 +8,7 @@
     "build": "astro build && node scripts/seo-build.mjs",
     "preview": "astro preview",
     "check": "astro check",
-    "test": "node scripts/check-site.mjs",
+    "test": "node scripts/check-site.mjs && node scripts/check-seo.mjs && node --test scripts/indexnow.test.mjs",
     "deploy": "astro build && wrangler deploy"
   },
   "dependencies": {

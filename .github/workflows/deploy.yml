@@ -43,5 +43,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: indexnow-receipt
-          path: indexnow-result.json
+          path: |
+            indexnow-result.json
+            work-indexnow-before.json
+            dist/seo-manifest.json
           if-no-files-found: ignore

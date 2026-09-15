@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import Post from '../../components/Post.astro';
-import { langOf, slugOf } from '../../i18n';
+import { langOf, slugOf, localUrl, seriesUrl, seriesName } from '../../i18n';
 import { byOrder, type Post as BlogPost } from '../../lib/posts';
 
 export async function getStaticPaths() {
@@ -21,6 +21,6 @@ export async function getStaticPaths() {
 }
 const { post, prev, next, hasTranslation } = Astro.props;
 ---
-<Base title={post.data.title} description={post.data.description} image={`/og/${slugOf(post.id)}.jpg`} type="article" date={post.data.date} lang="en" hasTranslation={hasTranslation}>
+<Base title={post.data.title} description={post.data.description} image={`/og/${slugOf(post.id)}.jpg`} type="article" date={post.data.date} updatedAt={post.data.updatedAt} breadcrumbs={[{name:'Writing',url:localUrl('en','/')},...(post.data.series?[{name:seriesName(post.data.series,'en')!,url:seriesUrl('en',post.data.series)}]:[]),{name:post.data.title,url:Astro.url.pathname}]} lang="en" hasTranslation={hasTranslation}>
   <Post post={post} prev={prev} next={next} lang="en" />
 </Base>
