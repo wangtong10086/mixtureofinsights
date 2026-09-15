@@ -270,3 +270,5 @@ a.entry-series:hover { color: var(--accent); }
 @media (max-width: 360px) {
   .nav { gap: .75rem; }
 }
+
+.breadcrumbs{padding-top:1.5rem;font-size:.8rem;color:var(--muted)}.breadcrumbs ol{display:flex;flex-wrap:wrap;gap:.4rem;list-style:none;padding:0;margin:0}.breadcrumbs li+li::before{content:"/";margin-right:.4rem}.byline{font-size:.85rem;color:var(--muted);margin-bottom:1.5rem}.series-guide{margin-bottom:2rem}

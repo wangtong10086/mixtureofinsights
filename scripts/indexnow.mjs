@@ -3,6 +3,19 @@ import {pathToFileURL} from 'node:url';
 const site='https://mixtureofinsights.com';
 export function changedUrls(before,after){return [...new Set([...Object.keys(before.pages),...Object.keys(after.pages)])].filter(u=>before.pages[u]!==after.pages[u]).sort();}
 async function get(url){return fetch(url,{signal:AbortSignal.timeout(20000),cache:'no-store'});}
+export async function waitForManifest(expected, read = async () => {
+ const response = await get(site+'/seo-manifest.json');
+ if (!response.ok) throw Error(`Manifest HTTP ${response.status}`);
+ return response.json();
+}, pause = ms => new Promise(resolve => setTimeout(resolve,ms))) {
+ let last;
+ for(let attempt=0;attempt<7;attempt++) {
+  try { const live=await read(); if(JSON.stringify(live)===JSON.stringify(expected)) return; last='different deployment'; }
+  catch(error) { last=error.message; }
+  if(attempt<6) await pause(10000);
+ }
+ throw Error(`Live deployment manifest not ready: ${last}; no notification sent`);
+}
 async function main(){
  const mode=process.argv[2];
  if(mode==='snapshot'){
@@ -14,7 +27,7 @@ async function main(){
  }
  if(mode==='submit'){
   const before=JSON.parse(readFileSync('work-indexnow-before.json','utf8'));const after=JSON.parse(readFileSync('dist/seo-manifest.json','utf8'));
-  const urls=changedUrls(before,after);const live=await (await get(site+'/seo-manifest.json')).json();if(JSON.stringify(live)!==JSON.stringify(after))throw Error('Live deployment manifest mismatch; no notification sent');
+  const urls=changedUrls(before,after);await waitForManifest(after);
   if(urls.some(u=>new URL(u).origin!==site)||urls.length>10000)throw Error('Invalid submission scope');
   if(!urls.length){console.log('IndexNow: no changed pages');return;}
   const key=readFileSync('scripts/indexnow-key.txt','utf8').trim();const response=await fetch('https://api.indexnow.org/indexnow',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host:new URL(site).host,key,keyLocation:site+'/'+key+'.txt',urlList:urls}),signal:AbortSignal.timeout(30000)});

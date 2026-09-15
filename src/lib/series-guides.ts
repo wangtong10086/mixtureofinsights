@@ -1,0 +1,6 @@
+export const seriesGuides:Record<string,{en:string;zh:string}>={
+'post-training':{en:'Follow ORBIT training trajectories from generation and filtering to reward validation, GRPO, DPO and self-play. The articles distinguish executable paths from design sketches and discuss where evaluation limits the conclusions.',zh:'沿着 ORBIT 的训练轨迹，了解生成与筛选、奖励验证、GRPO、DPO 和自我博弈。文章区分可执行路径与设计草图，并说明评测如何限制结论。'},
+'orbit':{en:'Understand how the control plane, task plugins and run bundles divide responsibility when running training on rented GPUs. Start with provisioning and process control, then follow the task interface and inspect the saved artifacts.',zh:'了解在租用 GPU 上训练时，控制面、任务插件和运行目录如何划分职责。先看资源与进程控制，再看任务接口及保存的产物。'},
+'openvino-tts':{en:'Trace Qwen3-TTS from graph export on Intel hardware to streaming audio. The series covers model stages, stateful KV caches, quantization boundaries and scheduling without relying on a vLLM runtime.',zh:'跟踪 Qwen3-TTS 从 Intel 硬件上的计算图导出到流式音频输出，理解模型阶段、有状态 KV 缓存、量化边界以及不依赖 vLLM 运行时的调度。'},
+'android-hardening':{en:'Investigate the evidence Android apps can observe: attestation, packages, permissions, logs and native system calls. Read the limits of each observation alongside the implementation; local changes do not establish hardware-backed trust.',zh:'排查 Android 应用能观察到的证据：硬件证明、包名、权限、日志和原生系统调用。结合实现阅读每类观察的边界；本地修改不等于建立硬件信任。'}
+};

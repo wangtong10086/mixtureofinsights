@@ -1,7 +1,7 @@
 ---
 import { render } from 'astro:content';
 import Comments from './Comments.astro';
-import { t, slugOf, postUrl, seriesName, seriesUrl, type Lang } from '../i18n';
+import { t, slugOf, postUrl, seriesName, seriesUrl, localUrl, type Lang } from '../i18n';
 import { formatDate, type Post } from '../lib/posts';
 interface Props { post: Post; prev: Post | null; next: Post | null; lang: Lang; }
 const { post, prev, next, lang } = Astro.props;
@@ -18,6 +18,7 @@ const cover = `/og/${slug}.jpg`;
   {post.data.series && <a class="series-label" href={seriesUrl(lang, post.data.series)}>{seriesLabel}</a>}
   <div class="meta"><time datetime={post.data.date.toISOString().slice(0, 10)}>{formatDate(post.data.date, lang, 'long')}</time>{post.data.reading ? ` · ${post.data.reading}` : ''}</div>
   <h1>{post.data.title}</h1>
+  <p class="byline"><a rel="author" href={localUrl(lang,'/about/')}>{lang === 'zh' ? '王通' : 'Wang Tong'}</a>{post.data.updatedAt && <> · {lang === 'zh' ? '更新于 ' : 'Updated '}<time datetime={post.data.updatedAt.toISOString().slice(0,10)}>{formatDate(post.data.updatedAt,lang,'long')}</time></>}</p>
 
   {post.data.showCover && <img class="cover" src={cover} alt={`${tr('post.coverAlt')} “${post.data.title}”`} width="1024" height="1024" loading="lazy" decoding="async" />}
 
