@@ -1,14 +1,15 @@
 ---
-title: "离开 N 卡后的真实世界：Ultra x7 358h 平台上的 TTS 推理框架重构"
+title: "Intel 平台上的 Qwen3-TTS：不依赖 CUDA 的 OpenVINO 推理"
 description: "Qwen3-TTS 在 Intel 硬件上的 OpenVINO 移植：内存带宽、量化、KV 缓存与流式批处理调度。"
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 1
 series: "openvino-tts"
 reading: "35 分钟"
 tags: ["llm", "inference", "openvino", "tts", "edge", "ultra-x7"]
 ---
 
-部署大模型时，我们常从 vLLM、TGI 或 TensorRT-LLM 的镜像开始。边缘计算与 AI PC 项目面对的往往不是装配着 80GB HBM3 的 H100，而是受功耗和散热限制的移动端异构芯片。
+本系列记录面向 Intel 设备的 OpenVINO Qwen3-TTS 运行时：图导出、权重与 KV 状态量化、原生执行以及流式调度。带宽公式是在给定假设下的估算，不代表实测吞吐；本文介绍的是这个项目的实现，也不是 OpenVINO 生态全部功能的清单。
 
 在启动 `qwen3-tts-openvino` 项目时，我们的目标是让 1.7B 参数级别的 Qwen3-TTS 在 Ultra x7 358h 这样的商用平台上支持流畅的并发语音服务，不依赖 N 卡。
 
@@ -80,7 +81,7 @@ Ultra x7 358h 的 iGPU 拥有极高的计算能力，但它的共享内存带宽
 
 为了推高算术强度，第一步必须是降低权重的物理体积。
 
-在 [`scripts/compress_openvino_weights.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/scripts/compress_openvino_weights.py) 中，我对导出的计算图实施了 **INT8 对称量化（Symmetric Quantization）**，生成了生产环境使用的 `int8_sym_batch_fused_gqa` 变体。
+在 [`scripts/compress_openvino_weights.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/7ad76aad56301074ec689aac1d988d6461462916/scripts/compress_openvino_weights.py) 中，我对导出的计算图实施了 **INT8 对称量化（Symmetric Quantization）**，生成了生产环境使用的 `int8_sym_batch_fused_gqa` 变体。
 
 ```python
 # scripts/compress_openvino_weights.py 核心片段
@@ -100,7 +101,7 @@ compressed = nncf.compress_weights(
 
 Batching 可以提高算术强度。当 Batch Size 为 $B$ 时，模型权重只需读取一次，即可服务 $B$ 个并行的 Token 生成。此时 $I \approx \frac{2B}{b}$，计算密集度随并发量线性上升，直接将问题从带宽受限区推向计算受限区。
 
-由于 OpenVINO 不提供并发框架，我们在 Python 层（[`qwen3_tts_ov/online_batch.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/online_batch.py)）配合底层的 C++，实现了连续批处理器 `OnlineBatchScheduler`。
+由于 OpenVINO 不提供并发框架，我们在 Python 层（[`qwen3_tts_ov/online_batch.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/7ad76aad56301074ec689aac1d988d6461462916/qwen3_tts_ov/online_batch.py)）配合底层的 C++，实现了连续批处理器 `OnlineBatchScheduler`。
 
 这是一个完全独立于主干线程的守护服务。传统的静态批处理必须等一句长语音全部生成完，才能处理下一句；而我们的调度器在 `_loop` 循环中，以**“单个解码步（Single Decoding Step）”**为粒度监听请求队列。
 
@@ -156,7 +157,7 @@ $$
 
 ### 4.1 注入 PagedAttention 算子
 
-OpenVINO 原本的静态图无法动态分配内存。为了打破这个限制，在原生 C++ 后端（[`native/qwen3_tts_ov_genai/qwen3_tts_codegen.cpp`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/native/qwen3_tts_ov_genai/qwen3_tts_codegen.cpp)）中，我们读取了一张没有缓存连接的 Seed 图，并在编译前应用 Pass：`SDPAToPagedAttention`。
+OpenVINO 原本的静态图无法动态分配内存。为了打破这个限制，在原生 C++ 后端（[`native/qwen3_tts_ov_genai/qwen3_tts_codegen.cpp`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/7ad76aad56301074ec689aac1d988d6461462916/native/qwen3_tts_ov_genai/qwen3_tts_codegen.cpp)）中，我们读取了一张没有缓存连接的 Seed 图，并在编译前应用 Pass：`SDPAToPagedAttention`。
 
 ```cpp
 // 强行把普通的 SDPA 算子转化为支持内存页表的 PagedAttention
@@ -192,7 +193,7 @@ class OnlineBatchConfig:
 
 在 Ultra x7 358h 上，把负载都放在 iGPU 上，很快会达到 TDP（热设计功耗）限制并降频。我们将一部分负载移到低功耗的 NPU (Neural Processing Unit)。
 
-在 [`qwen3_tts_ov/npu_offload_profile.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/npu_offload_profile.py) 与运行时的设备分发模块中，我们实现了异构调度（Heterogeneous Scheduling）。
+在 [`qwen3_tts_ov/npu_offload_profile.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/7ad76aad56301074ec689aac1d988d6461462916/qwen3_tts_ov/npu_offload_profile.py) 与运行时的设备分发模块中，我们实现了异构调度（Heterogeneous Scheduling）。
 
 TTS 的解码过程（详见本系列的[第二篇](/zh/blog/how-qwen3-tts-makes-a-frame/)）其实包含两部分：
 1. **Talker 模型**：负责长文本自回归注意力，带有庞大的 Paged-KV Cache，是一个彻底的**带宽受限型（Memory-Bound）**任务。
@@ -212,3 +213,5 @@ if npu_offload_policy == "decoder":
 通过将重度计算负载分摊给 NPU，iGPU 可以专注于受内存带宽限制的部分。在实际压测中，这种异构协同不仅稳住了并发时的 RTF，还显著降低了整机的功耗风扇噪音。
 
 硬件适配、量化和调度完成后，还需要处理模型内部不同阶段的计算与访存需求。在下一篇 [拆解 Qwen3-TTS：OpenVINO 移植过程中的图分离与调度实践](/zh/blog/how-qwen3-tts-makes-a-frame/) 中，我会说明整体导出遇到的问题，以及图拆分和非对称调度的实现。
+
+接下来可阅读 [Talker、Subcode 与 Decoder 的图分离](/zh/blog/how-qwen3-tts-makes-a-frame/)，了解一帧音频中哪些负载需要分别调度。

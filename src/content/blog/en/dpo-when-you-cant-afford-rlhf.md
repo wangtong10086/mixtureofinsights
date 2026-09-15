@@ -1,14 +1,15 @@
 ---
-title: "DPO when I can't afford RLHF"
+title: "DPO for role-play: preference pairs and chosen likelihood"
 description: "Using DPO for role-play preferences: the loss and gradient, chosen/rejected data, falling chosen likelihood, and serving character adapters with S-LoRA."
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 4
 series: "post-training"
 reading: "12 min read"
 tags: ["llm", "dpo", "alignment", "preference-data", "vllm"]
 ---
 
-The previous posts used GRPO for tasks with verifiable rewards and a need for online exploration. My role-play models posed a different problem: staying in character and using a preferred tone. There was no verifier for those judgments and no need for online RL, so a full RLHF loop added unnecessary cost.
+For the role-play setting here, DPO learns from prompt/chosen/rejected triples without an online rollout loop or a separately trained reward model. Construct pairs around the behavior to change, then monitor chosen log-probability as well as the loss. The public ORBIT source is a script generator; it does not by itself reproduce the training or multi-adapter serving results described below.
 
 I used DPO for these models. It trains on preference pairs, using the objective derived in the original [Direct Preference Optimization (Rafailov et al., 2023)](https://arxiv.org/abs/2305.18290) paper.
 
@@ -49,7 +50,7 @@ $$
 
 Training uses four forward passes per pair (policy and reference, on chosen and rejected) and a logistic loss, without a separate reward model or online sampling loop. The KL constraint enters the loss through $\pi_{\mathrm{ref}}$ and $\beta$.
 
-This maps to my training script. `generate_dpo_script` in [`orbit/training/dpo_config.py`](https://github.com/wangtong10086/mixtureofinsights/blob/main/orbit/training/dpo_config.py) wires up a `trl` `DPOConfig` + `DPOTrainer`. The $\beta$ from the derivation is a literal constant:
+This maps to my training script. `generate_dpo_script` in [`orbit/training/dpo_config.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/training/dpo_config.py) wires up a `trl` `DPOConfig` + `DPOTrainer`. The $\beta$ from the derivation is a literal constant:
 
 ```python
 DPO_BETA = 0.1
@@ -77,7 +78,9 @@ I hard-code `DPO_BETA = 0.1` — small enough to let the persona move, tight eno
 (anchored to the SFT reference)
 ```
 
-## What my gradient is doing
+<span id="what-my-gradient-is-doing" aria-hidden="true"></span>
+
+## Why chosen likelihood can fall during DPO
 
 Differentiate the loss and the per-example gradient is:
 
@@ -90,7 +93,9 @@ where $\hat r_\theta$ is the implicit reward $\beta\log\frac{\pi_\theta}{\pi_{\m
 
 This same mechanism is the source of a failure mode detailed in [A General Theoretical Paradigm to Understand Learning from Human Preferences (Azar et al., 2023)](https://arxiv.org/abs/2310.12036). The loss only constrains the difference of log-ratios. I often observe the log-probability of the chosen responses going down during training, just slower than the rejected ones. The model optimizes exactly what I asked, while becoming less likely to produce the exact answers I preferred.
 
-## The OOC trick I use
+<span id="the-ooc-trick-i-use" aria-hidden="true"></span>
+
+## Filtering character data for consistency
 
 I target out-of-character (OOC) slips — the model breaking persona. My preference pairs aim exactly at that: the rejected sample is a plausible-but-OOC response, the chosen is the in-character one, matched so the only difference is the penalty target. If chosen and rejected differ in length or topic, DPO exploits that and learns the wrong lesson. A well-constructed pair isolates one axis, and DPO learns a precise downward pressure on OOC behavior.
 
@@ -99,3 +104,5 @@ I target out-of-character (OOC) slips — the model breaking persona. My prefere
 At 14B parameters in fp16, loading a full fine-tune per character takes ~28 GB of weights. I'd max out a GPU immediately. Instead, I deploy using vLLM + [S-LoRA (Sheng et al., 2023)](https://arxiv.org/abs/2311.03285). The personas are LoRA adapters (rank-16 is tens of MBs), multiplexed over one shared base on the same GPU. S-LoRA batches requests hitting different adapters together, so my deployment answers as dozens of characters concurrently at high throughput.
 
 I keep the preference data close to the current policy and deploy the resulting adapters over a shared base. The main work is constructing useful pairs and checking what the likelihoods do during training.
+
+For tasks with executable correctness checks and online exploration, the alternative in this series is [SFT cold-start followed by GRPO](/blog/cold-start-then-climb/).

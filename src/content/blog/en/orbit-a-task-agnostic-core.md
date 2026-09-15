@@ -1,14 +1,15 @@
 ---
-title: "A task-agnostic core, and plugins that earn their keep"
+title: "ORBIT task plugins: validation outside the execution core"
 description: "ORBIT puts request validation and result summaries in task plugins, while one execution core handles bundle staging, launch, monitoring, and artifact collection."
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 2
 series: "orbit"
 reading: "12 min read"
 tags: ["llm", "infrastructure", "architecture", "orbit", "design"]
 ---
 
-My separation of the local control plane from the remote execution plane relies on one critical invariant: the execution core has no concept of what a "training job" or an "eval job" is. The executor only understands generic bundles, physical placement, launch modes, and artifact collection.
+ORBIT puts task-specific parsing, validation, bundle construction and result summaries in TaskPlugin implementations. A shared executor handles staging, placement, launch and collection. This boundary makes a new task easier to review, but it still requires integration tests: a malformed bundle can cross the interface and fail in the shared core.
 
 ## The Cost of Task-Awareness
 
@@ -42,7 +43,7 @@ I used that distinction to split the code, following Parnas's rule on modulariza
   +------------------------------------+
 ```
 
-The boundary is codified in `TaskPlugin`, defined in [`orbit/core/control/registry.py`](https://github.com/wangtong10086/orbit/blob/main/orbit/core/control/registry.py):
+The boundary is codified in `TaskPlugin`, defined in [`orbit/core/control/registry.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/core/control/registry.py):
 
 ```python
 class TaskPlugin(Protocol):
@@ -55,9 +56,9 @@ class TaskPlugin(Protocol):
     def summarize_result(self, *, submission, bundle, status, manifest) -> TaskSummary: ...
 ```
 
-There are no SFT or dataset references here. `parse_request` and `validate_request` handle task-specific ingestion. `build_bundle` maps it to a uniform `JobBundle`. The execution core at [`orbit/core/execution`](https://github.com/wangtong10086/orbit/tree/main/orbit/core/execution) processes the bundle opaquely.
+There are no SFT or dataset references here. `parse_request` and `validate_request` handle task-specific ingestion. `build_bundle` maps it to a uniform `JobBundle`. The execution core at [`orbit/core/execution`](https://github.com/wangtong10086/orbit/tree/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/core/execution) processes the bundle opaquely.
 
-The `TrainingPlugin` in [`orbit/tasks/training/plugin.py`](https://github.com/wangtong10086/orbit/blob/main/orbit/tasks/training/plugin.py) enforces specific keys:
+The `TrainingPlugin` in [`orbit/tasks/training/plugin.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/tasks/training/plugin.py) enforces specific keys:
 
 ```python
 class TrainingPlugin:
@@ -99,3 +100,5 @@ This separation takes more work to debug. A run may crash in the generic core be
 I also have to check new fields for task-specific assumptions. If I add a generic bundle field that only makes sense for training, the core has secretly learned about the task. I rigorously prevent the execution engine from growing `if` statements about bundle contents.
 
 The plugin boundary isolates task changes, while SFT, RLHF, and evaluation sweeps exercise the same executor pipeline.
+
+Start with [the control-plane overview](/blog/a-control-plane-for-renting-gpus/) for the submission lifecycle, then inspect the bundle contract in the next article.

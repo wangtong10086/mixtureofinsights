@@ -1,12 +1,15 @@
 ---
-title: "拆解 Qwen3-TTS：OpenVINO 移植过程中的图分离与调度实践"
+title: "Qwen3-TTS 的 OpenVINO 拆图：Talker、Subcode 与流式解码"
 description: "在 OpenVINO 中分开导出 Qwen3-TTS 的 Talker、Subcode 和流式 Decoder，并为首段语音和稳态输出配置不同的解码块。"
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 2
 series: "openvino-tts"
 reading: "38 分钟"
 tags: ["llm", "tts", "openvino", "codec", "architecture", "ultra-x7"]
 ---
+
+这套导出方案将长上下文 Talker、单帧内的 Subcode 预测和分块波形 Decoder 分开，并为首段音频设置比稳态输出更小的解码窗口。复杂度讨论用于区分负载，不是性能实测；带缓存的单步解码、完整序列累计计算量和缓存容量需要分别看待。
 
 在[上一篇](/zh/blog/when-the-gpu-isnt-an-nvidia/)中，我们在 Ultra x7 358h 平台上，从底层的内存带宽、量化算子和连续批处理框架入手，完成了推理环境的调整。但把 Qwen3-TTS 整体导出为一个 OpenVINO IR 模型后，核显上的生成仍然很慢，高并发时内存也会迅速增长到 OOM。
 
@@ -14,11 +17,13 @@ tags: ["llm", "tts", "openvino", "codec", "architecture", "ultra-x7"]
 
 它包含三种计算形状（Compute Shape）和访存模式不同的子系统，需要通过图分离（Graph Splitting），让编译器分别进行硬件加速。
 
-下面介绍我在 [`exporter.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/exporter.py) 中对 Qwen3-TTS 的拆图方式，以及如何通过非对称块调度解决流式响应的延迟问题。
+下面介绍我在 [`exporter.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/7ad76aad56301074ec689aac1d988d6461462916/qwen3_tts_ov/exporter.py) 中对 Qwen3-TTS 的拆图方式，以及如何通过非对称块调度解决流式响应的延迟问题。
 
 ---
 
-## 1. 症结所在：多码本 RVQ 带来的计算冗余
+<span id="1-症结所在多码本-rvq-带来的计算冗余" aria-hidden="true"></span>
+
+## 1. RVQ 多码本与单帧生成
 
 要理解为什么要拆分图，必须先弄懂神经音频 Codec 所采用的**残差矢量量化（[Residual Vector Quantization, RVQ](https://arxiv.org/abs/2107.03312)）**机制，该机制最早由 Google 的 SoundStream 和 Meta 的 [EnCodec](https://arxiv.org/abs/2210.13438) 推广。
 
@@ -72,9 +77,11 @@ $$
 
 ---
 
-## 2. 代码级图分离：面向计算形状的解耦
+<span id="2-代码级图分离面向计算形状的解耦" aria-hidden="true"></span>
 
-为处理这些冗余访问，我在 [`qwen3_tts_ov/exporter.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/exporter.py) 中将完整 Pipeline 拆成三张独立的图。
+## 2. Talker、Subcode 与解码器的图分离
+
+为处理这些冗余访问，我在 [`qwen3_tts_ov/exporter.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/7ad76aad56301074ec689aac1d988d6461462916/qwen3_tts_ov/exporter.py) 中将完整 Pipeline 拆成三张独立的图。
 
 ### 2.1 剥离重型 Talker：注入 Paged-KV
 
@@ -84,7 +91,7 @@ $$
 ### 2.2 导出极速的 Subcode 缓存图
 
 原本位于主干中的循环，被单独导出为较小的图：`subcode_greedy_cached_batch.xml`。
-它被设计为完全无状态（Stateless），唯一依赖的输入是从 Talker 拿到的单帧隐状态 $H$。这意味着无论长文本生成的音频进行到第几分钟，Subcode 这部分的算力开销被锁死在了常数级底线，根本不参与 KV 缓存的带宽消耗。
+它不保留跨音频帧的长上下文，但并非完全没有缓存：`SubcodeGreedyCachedWrapper` 在单帧的码本预测循环内维护有界 KV 状态，并接收来自 Talker 的单帧隐状态 $H$。这意味着无论长文本生成的音频进行到第几分钟，Subcode 这部分的算力开销被锁死在了常数级底线，根本不参与 KV 缓存的带宽消耗。
 
 ```python
 # qwen3_tts_ov/exporter.py 拆图核心实现
@@ -98,7 +105,9 @@ class DynamicFusedCacheCodecStepPagedBatchGQASeedWrapper:
 
 ---
 
-## 3. 流式解码挑战：首音延迟（TTFT）与左侧上下文的博弈
+<span id="3-流式解码挑战首音延迟ttft与左侧上下文的博弈" aria-hidden="true"></span>
+
+## 3. 首音延迟、分块大小与左侧上下文
 
 码本 Token 还要经过解码器（Decoder），才能转成 PCM 波形流。这一步需要兼顾首音延迟和历史上下文。
 
@@ -110,7 +119,7 @@ Decoder 本质上是一层层的卷积网络。为了保证每一帧拼接处不
 
 ### 3.1 解决方案：非对称块调度 (Asymmetric Chunk Scheduling)
 
-为了尽早输出声音，同时保留后续解码需要的上下文，我们在 [`build_fastest.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/build_fastest.py) 编译脚本中分别导出首块和稳态两种解码图。
+为了尽早输出声音，同时保留后续解码需要的上下文，我们在 [`build_fastest.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/7ad76aad56301074ec689aac1d988d6461462916/qwen3_tts_ov/build_fastest.py) 编译脚本中分别导出首块和稳态两种解码图。
 
 ```python
 # qwen3_tts_ov/build_fastest.py 参数定义
@@ -148,7 +157,9 @@ User           Talker (iGPU)        First_Decoder_Graph (NPU)     Steady_Decoder
 
 ---
 
-## 4. 落地：C++ 接管调度大权
+<span id="4-落地c-接管调度大权" aria-hidden="true"></span>
+
+## 4. C++ 运行时调度
 
 运行时要频繁调度三类图：
 1. iGPU 上的重型 Talker（依赖 Paged-KV）
@@ -162,3 +173,5 @@ User           Talker (iGPU)        First_Decoder_Graph (NPU)     Steady_Decoder
 ## 5. 总结
 
 拆图后，Talker 的带宽需求、Subcode 的计算需求和 Decoder 的延迟要求可以分别处理，并分配到 Ultra x7 358h 的不同器件。并发时还需要决定哪些请求能进入 Paged-KV 内存池，这部分见[无 vLLM 环境下的 Paged-KV 与连续批处理调度](/zh/blog/paged-kv-batching-without-vllm/)。
+
+图能分别执行后，还需要用 [Paged-KV 分配和连续批处理](/zh/blog/paged-kv-batching-without-vllm/)管理并发语音流。

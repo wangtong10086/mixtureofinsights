@@ -1,18 +1,19 @@
 ---
-title: "Self-play, and the games my models teach themselves"
+title: "OpenSpiel training data: MCTS, CFR and trajectory filtering"
 description: "The GAME pipeline uses OpenSpiel, MCTS, and CFR/MCCFR to generate play, filters trajectories by outcome, and turns them into SFT conversations."
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 5
 series: "post-training"
 reading: "13 min read"
 tags: ["llm", "self-play", "game-playing", "openspiel", "rejection-sampling"]
 ---
 
-I can't script the right move at every turn of a five-card imperfect-information bluffing game against an adapting opponent. My `GAME` environment instead uses a game-theoretic sampler to produce play, then turns those decisions into training data for the model.
+In this GAME collection path, MCTS or CFR/MCCFR supplies actions and OpenSpiel supplies terminal payoffs; the LLM later learns from state/action conversations. Collection is solver-generated training data, separate from an online loop where the LLM improves by playing itself. Search budgets and outcome filtering affect dataset quality, so neither a win nor a large budget proves every move is optimal.
 
 ## My setup: OpenSpiel games as a strategy generator
 
-My shipped GAME engine leans on [OpenSpiel](https://github.com/google-deepmind/open_spiel), the deep reinforcement learning framework from DeepMind. I use a small registry of games in [`orbit/data/game_trajectory_generators.py`](https://github.com/wangtong10086/mixtureofinsights/blob/main/orbit/data/game_trajectory_generators.py):
+My shipped GAME engine leans on [OpenSpiel](https://github.com/google-deepmind/open_spiel), the deep reinforcement learning framework from DeepMind. I use a small registry of games in [`orbit/data/game_trajectory_generators.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/data/game_trajectory_generators.py):
 
 ```python
 SUPPORTED_GAMES = (
@@ -33,7 +34,7 @@ Perfect-information board games (`othello`, `hex`) use MCTS search at collection
 
 ## Why self-play hands me infinite data
 
-The game provides its own verifier. Every match ends with a terminal state, and OpenSpiel returns the payoff. In `search_generators.py` I keep the trajectory only if the recorded player actually won:
+The game provides its own verifier. Every match ends with a terminal state, and OpenSpiel returns the payoff. In `search_generators.py` I retain a trajectory when its normalized terminal score reaches the configured threshold:
 
 ```python
 returns = state.returns()
@@ -42,6 +43,8 @@ score = max(0.0, min(1.0, (returns[bot_player] + 1) / 2.0))
 if score < 0.5:
     return None
 ```
+
+The filter shown here also keeps score 0.5 (a zero payoff), so “winners” in the diagrams is shorthand rather than a strict win-only rule. Its exact semantics depend on the game payoff scale.
 
 That `returns()` payoff is an automatic, un-gameable label on the entire trajectory. A game with a crisp terminal outcome is the cheapest verifier in all of post-training.
 
@@ -58,7 +61,7 @@ That `returns()` payoff is an automatic, un-gameable label on the entire traject
 +-------------------+      +-------------------+
 ```
 
-In my generation pipeline, I oversample and keep the wins. Every generator's `generate_batch` budgets `sample_count * attempt_multiplier` attempts. The transcripts are the dataset — I never script a single move. Filtering by who won is rejection sampling on trajectories. It has a credit assignment problem — a won game also brings its weak moves into the training set. Win/loss is a noisy, delayed, sparse reward. By using MCTS budgets or CFR solvers that are already near-optimal per move, I ensure most kept trajectories are clean by construction.
+In my generation pipeline, I oversample and keep trajectories that pass this threshold. Every generator's `generate_batch` budgets `sample_count * attempt_multiplier` attempts. The transcripts are the dataset — I never script a single move. Filtering by terminal score is rejection sampling on trajectories. It has a credit assignment problem — a won game also brings its weak moves into the training set. Win/loss is a noisy, delayed, sparse reward. MCTS budgets and CFR solvers give me controllable data-generation settings, but they do not prove that each retained move is near-optimal; that requires evaluation for the particular game.
 
 ## Self-play is my automatic curriculum
 
@@ -74,3 +77,5 @@ messages.append({"role": "assistant", "content": str(action)})
 ```
 
 The record carries `env: "GAME"` and a normalized payoff `score`. From there it flows through the `build_ms_swift_dataset` pipeline. My LLM never plays the game during collection; it learns to imitate a near-optimal move from a near-optimal sampler. It absorbs the CFR equilibrium's move distribution as plain next-token prediction over state-to-action pairs.
+
+The resulting records feed the same [generation, filtering and SFT data pipeline](/blog/post-training-is-a-data-problem/) as the other ORBIT environments.

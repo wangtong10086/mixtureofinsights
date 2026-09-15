@@ -1,14 +1,15 @@
 ---
-title: "PayPal 闪退复盘：从一个设备号缺口追到 App Zygote 的 SELinux 错误码"
+title: "PayPal 启动闪退：文件系统设备号与 App Zygote 错误码"
 description: "追踪 PayPal 启动失败中的两项信号：Magisk 的文件系统设备号分配与 App Zygote 的 SELinux 错误码，以及对应修改的验证过程和限制。"
 date: 2026-09-14
+updatedAt: 2026-09-15
 order: 6
 series: "android-hardening"
 reading: "25 分钟"
 tags: ["android", "debugging", "magisk", "selinux", "ebpf", "kernel"]
 ---
 
-PayPal 以前能正常运行。当时主要依靠 Magisk 的 Root 隐藏和隐藏应用列表，后来却变成了打开即退出。
+针对记录中的 Xiaomi 13 构建与 PayPal 10.12.0，排查分离出文件系统设备号和 App Zygote 错误码两项信号。证据依次包括实际输入、离线单字段实验、独立进程上下文复现，以及两项修改合并后的实机验收。验收覆盖认证后进入并稳定停留，未测试支付、转账或服务端信任状态。
 
 换模块、改作用域或换版本，都可能改变结果，却未必能解释故障。这次排查先停下配置修改，追踪当前版本的 PayPal 读了什么，以及哪个返回值触发了退出。
 
@@ -261,3 +262,5 @@ PayPal 验收覆盖认证后进入与停留，没有执行支付、转账，也�
 公开摘要摘取本地记录中的技术字段，移除了设备标识、个人路径和账户界面；它不是完整原始日志，也不是独立第三方复验。原始镜像、原始日志和恢复材料留在本地。代码基线与证据索引另记在仓库的 `docs/SOURCES.md`，方便之后更新文章时逐项核对。
 
 这两处修改仍需维护。下次版本更新后，应先确认设备号和错误码差异是否还存在，再判断补丁是否适用。
+
+这项进程相关的结果延续了此前的 [UID、SELinux 与命名空间审计](/zh/blog/04-auditing-from-the-apps-eyes/)。

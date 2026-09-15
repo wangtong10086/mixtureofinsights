@@ -1,14 +1,15 @@
 ---
-title: "bundle 即契约"
+title: "ORBIT 任务 bundle：日志、产物与依赖来源"
 description: "ORBIT bundle 的目录约定、分层日志和依赖来源记录，以及接入上游项目时保留原有语义的做法。"
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 3
 series: "orbit"
 reading: "12 分钟"
 tags: ["llm", "infrastructure", "observability", "orbit", "reproducibility"]
 ---
 
-显存 OOM、进程崩溃或抢占式实例被回收后，排查只能依赖已经收集到的日志和产物。因此，ORBIT 的 bundle 除了打包输入，还要记录运行过程。
+可用的实验 bundle 应记录提交了什么、实际运行了什么，以及收回了哪些产物。ORBIT 将 job.json、输入、脚本、运行状态和产物分开，并记录实际导入的依赖路径与固定版本。这些记录帮助排查运行；数值级精确复现还取决于数据、随机性和执行环境。
 
 这些记录需要在宿主机回收后仍然可用。只有“运行成功”这个状态不够：还需要 `job.json`、`runtime-precheck.log`、`stdout/stderr`，以及精确到 Git SHA 的依赖来源，才能还原当时运行了什么。
 
@@ -20,7 +21,7 @@ tags: ["llm", "infrastructure", "observability", "orbit", "reproducibility"]
 
 ## 架构重组：固定目录拓扑与分层日志
 
-bundle 的目录结构固定在代码中。在 [`orbit/core/execution/bundle.py`](https://github.com/wangtong10086/mixtureofinsights/blob/main/src/orbit/core/execution/bundle.py) 的 `JobBundle.ensure_structure` 中，各目录的职责如下：
+bundle 的目录结构固定在代码中。在 [`orbit/core/execution/bundle.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/core/execution/bundle.py) 的 `JobBundle.ensure_structure` 中，各目录的职责如下：
 
 ```text
 bundle_root/
@@ -44,7 +45,7 @@ print(f'swift runtime import ok: version={getattr(swift, "__version__", "unknown
       f'path={pathlib.Path(swift.__file__).resolve()}')
 ```
 
-接入 `affinetes` 这类外部环境时，我另加了一层很薄的集成代码。在 [`orbit/integrations/affinetes_swe`](https://github.com/wangtong10086/mixtureofinsights/blob/main/src/orbit/integrations/affinetes_swe) 中，我要求上游代码必须按完整的 40 字符 Git commit hash 钉死：
+接入 `affinetes` 这类外部环境时，我另加了一层很薄的集成代码。在 [`orbit/integrations/affinetes_swe`](https://github.com/wangtong10086/orbit/tree/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/integrations/affinetes_swe) 中，我要求上游代码必须按完整的 40 字符 Git commit hash 钉死：
 
 ```text
 [ORBIT: Thin Wrapper]                    [Upstream Environment (Blackbox)]
@@ -60,3 +61,5 @@ print(f'swift runtime import ok: version={getattr(swift, "__version__", "unknown
 ## 硬核落地：放弃修改的权力
 
 把外部依赖当作黑盒，就得接受上游的行为和限制，不能随手修改内部逻辑。这样可以继续跟进上游的安全更新，也能将每次运行的 metric 追溯到具体的 git commit。集成层只负责调用和记录，保持上游语义不变。
+
+[任务插件边界](/zh/blog/orbit-a-task-agnostic-core/)说明了谁负责构建 bundle，以及谁解释其中的结果。

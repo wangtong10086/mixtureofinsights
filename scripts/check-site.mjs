@@ -19,6 +19,9 @@ const routeFile = (path) => {
 const pages = new Map(files.map((file) => ['/' + file.replaceAll('\\', '/').replace(/^dist\//, '').replace(/index\.html$/, ''), read(file)]));
 const current = snapshot();
 const baseline = JSON.parse(read('scripts/fixtures/content-baseline.json'));
+const sourceMigrations = JSON.parse(read('scripts/fixtures/seo-link-migrations.json'));
+const titleMigrations = JSON.parse(read('scripts/fixtures/seo-title-migrations.json'));
+const headingMigrations = JSON.parse(read('scripts/fixtures/seo-heading-migrations.json'));
 // The author's 2026-09-14 follow-up extends prose editing to all 18 bilingual posts.
 // The original baseline still protects identity, code, math, headings and sources.
 const editableSlugs = [
@@ -35,8 +38,19 @@ const editable = new Set(['en', 'zh'].flatMap((lang) => editableSlugs.map((s) =>
 for (const id of Object.keys(baseline)) assert.ok(current[id], `Missing original article ${id}`);
 for (const [id, before] of Object.entries(baseline)) {
   const after = current[id];
-  for (const field of ['route', 'identity', 'code', 'math', 'headings', 'links', 'figures']) {
+  for (const field of ['route', 'code', 'math', 'figures']) {
     assert.deepEqual(after[field], before[field], `${id}: protected ${field} changed`);
+  }
+  const headings = headingMigrations[id] ?? [];
+  assert.deepEqual(after.headings, before.headings.map(h => headings.find(m => m.before === h)?.after ?? h));
+  for (const migration of headings) assert.ok(pages.get(before.route).includes(`id="${migration.anchor}"`), `${id}: lost legacy section link`);
+  assert.deepEqual(after.identity.filter(x=>!x.startsWith('title:')), before.identity.filter(x=>!x.startsWith('title:')), `${id}: publication/order/series metadata changed`);
+  assert.equal(after.identity[0], titleMigrations[id]?.after ?? before.identity[0], `${id}: unreviewed title`);
+  for(const token of before.links) {
+    const url=token.startsWith('](')?token.slice(2):null;
+    const target=url && Object.hasOwn(sourceMigrations,url)?sourceMigrations[url]:url;
+    if(target===null && url) continue; // only explicitly retired, documented private source
+    assert.ok(after.links.includes(url?']('+target:token), `${id}: removed source ${token}`);
   }
   if (!editable.has(id)) assert.equal(after.body, before.body, `${id}: outside the prose-edit scope`);
   assert.ok(pages.has(before.route), `Missing old route ${before.route}`);

@@ -1,0 +1,146 @@
+[
+  {
+    "slug": "post-training-is-a-data-problem",
+    "query": "How do I generate and verify LLM post-training data?",
+    "answer": "生成→验证→过滤→JSONL；通过率约束数据成本",
+    "evidence": "ORBIT data and verifier paths; illustrative odds model",
+    "pending": "KL 推导条件、预算占比及训练收益未独立验证",
+    "priority": true
+  },
+  {
+    "slug": "dpo-when-you-cant-afford-rlhf",
+    "query": "Why does chosen likelihood fall during DPO training?",
+    "answer": "相对偏好目标不等于 chosen 绝对概率上升",
+    "evidence": "DPO/IPO papers; ORBIT dpo_config.py",
+    "pending": "中英验证器叙述差异、QLoRA 产物大小与并发结果待确认",
+    "priority": true
+  },
+  {
+    "slug": "what-are-you-rewarding",
+    "query": "How should a planning agent combine verifiers and reward models?",
+    "answer": "硬约束程序检查、软判断模型评分、留出评测防止代理分数误导",
+    "evidence": "ORBIT StaticTraceVerifier; reward overoptimization paper",
+    "pending": "12% 口径与验证器完备性待作者记录",
+    "priority": true
+  },
+  {
+    "slug": "a-control-plane-for-renting-gpus",
+    "query": "How do I track and retry ML experiments on rented GPUs?",
+    "answer": "本地身份与远程执行分离；保留模板、bundle、handle和已收集产物",
+    "evidence": "ORBIT CoreControlService, execution service and templates",
+    "pending": "重提交不保证数值确定性；远端未收集产物无法自动恢复",
+    "priority": true
+  },
+  {
+    "slug": "how-qwen3-tts-makes-a-frame",
+    "query": "How are Qwen3-TTS graphs split for streaming OpenVINO inference?",
+    "answer": "Talker/Subcode/Decoder 分离；首块与稳态窗口不同",
+    "evidence": "exporter.py save_paged_kv_seed_talker_model and SubcodeGreedyCachedWrapper; build_fastest.py",
+    "pending": "旧 native_paged_kv.py 引用已定位到 exporter.py；TTFA/NPU实测待验证",
+    "priority": true
+  },
+  {
+    "slug": "paged-kv-batching-without-vllm",
+    "query": "How do Paged-KV and U8 support continuous batching on OpenVINO?",
+    "answer": "分页减少碎片、U8减小载荷、逐步调度提高请求接入灵活性",
+    "evidence": "online_batch.py and C++ graph pass; PagedAttention/Orca papers",
+    "pending": "2倍吞吐、3倍并发、时延与带宽极限缺实测条件",
+    "priority": true
+  },
+  {
+    "slug": "cold-start-then-climb",
+    "query": "When should I use SFT cold-start before GRPO?",
+    "answer": "先提高可用轨迹概率，再用奖励差异强化",
+    "evidence": "SwiftConfig, DeepSeekMath/R1 papers",
+    "pending": "稀疏奖励相对误差与绝对方差需区分；内部12%未复验",
+    "priority": false
+  },
+  {
+    "slug": "orbit-a-task-agnostic-core",
+    "query": "How can task plugins share one remote execution core?",
+    "answer": "四个任务接口与共用执行流程分离",
+    "evidence": "ORBIT registry.py, training/plugin.py",
+    "pending": "局部import不能保证所有依赖均无副作用",
+    "priority": false
+  },
+  {
+    "slug": "orbit-the-bundle-is-the-contract",
+    "query": "What should a remote ML job bundle preserve for debugging?",
+    "answer": "输入、运行时、日志与产物分层；记录实际依赖",
+    "evidence": "ORBIT bundle.py and exact-ref integration",
+    "pending": "只能审阅公开实现；不能复验作者所有运行记录",
+    "priority": false
+  },
+  {
+    "slug": "self-play-and-the-games-models-teach-themselves",
+    "query": "How can OpenSpiel MCTS and CFR generate LLM SFT data?",
+    "answer": "求解器产生动作，环境返回收益，再转换为对话",
+    "evidence": "search_generators.py threshold and attempt budget",
+    "pending": "长跑闭环公开实现有限；搜索近最优无基准",
+    "priority": false
+  },
+  {
+    "slug": "when-the-gpu-isnt-an-nvidia",
+    "query": "How can Qwen3-TTS stream on Intel hardware without CUDA?",
+    "answer": "导出与运行时配合；缓存、量化、调度分别处理",
+    "evidence": "qwen3-tts-openvino runtime and native backend",
+    "pending": "设备SKU/CPU/内存组合、音质功耗和RTF待原始记录",
+    "priority": false
+  },
+  {
+    "slug": "01-the-google-wallet-wall",
+    "query": "Why does Google Wallet fail when Play Integrity passes?",
+    "answer": "两个流程的成功条件不能互相替代；以TapAndPay阶段定位",
+    "evidence": "public Android attestation docs; reported private device logs",
+    "pending": "后台拒绝机制与修复经历未独立复验",
+    "priority": false
+  },
+  {
+    "slug": "02-stockmask",
+    "query": "Where should caller-aware PackageManager filtering run?",
+    "answer": "Binder响应侧过滤，版本相关入口需逐一检查",
+    "evidence": "AOSP Binder/PMS; private StockMask provenance",
+    "pending": "私有源码公开断链撤下；appId阈值不是严格第三方包判定",
+    "priority": false
+  },
+  {
+    "slug": "03-the-logcat-leak",
+    "query": "Why can su still read logcat after READ_LOGS is revoked?",
+    "answer": "权限与SELinux域都属于有效访问条件",
+    "evidence": "READ_LOGS docs; AOSP LogcatManagerService",
+    "pending": "15项授权及ROM自动授权机制待设备日志",
+    "priority": false
+  },
+  {
+    "slug": "04-auditing-from-the-apps-eyes",
+    "query": "How do I audit what an Android app can actually observe?",
+    "answer": "分别验证UID、SELinux域、namespace和进程映射",
+    "evidence": "nsenter docs; Android SELinux docs",
+    "pending": "命令执行域与完整进程身份不等价",
+    "priority": false
+  },
+  {
+    "slug": "05-what-you-can-and-cant-hide",
+    "query": "Which rooted Android signals are local and which involve attestation?",
+    "answer": "分层列出检测通道与剩余边界",
+    "evidence": "series mechanisms and Android key attestation docs",
+    "pending": "表格状态限于原环境；不承诺通用隐藏",
+    "priority": false
+  },
+  {
+    "slug": "06-paypal-crash-two-root-signals",
+    "query": "How can App Zygote errno and st_dev affect an Android startup check?",
+    "answer": "先分离输入信号，再进行上下文复现与组合验收",
+    "evidence": "public patches, sanitized evidence, host test output",
+    "pending": "原始材料私有；不等于本轮重做实机实验",
+    "priority": false
+  },
+  {
+    "slug": "nvim-yank-osc52",
+    "query": "How do I copy from Neovim over SSH with OSC 52?",
+    "answer": "终端输出写入剪贴板；粘贴与读取权限分开",
+    "evidence": "Neovim PR25872 and provider documentation",
+    "pending": "终端/多路复用器版本相关；本轮未实测终端组合",
+    "priority": false
+  }
+]

@@ -1,12 +1,15 @@
 ---
-title: "无 vLLM 环境下的 Paged-KV 与连续批处理调度"
+title: "OpenVINO Qwen3-TTS：Paged-KV、U8 缓存与连续批处理"
 description: "用 OpenVINO Paged-KV、U8 缓存和连续批处理，在核显内存预算内调度 Qwen3-TTS 的长上下文与并发请求。"
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 3
 series: "openvino-tts"
 reading: "42 分钟"
 tags: ["llm", "inference", "openvino", "kv-cache", "batching", "ultra-x7"]
 ---
+
+这套服务运行时分别处理三项成本：Paged-KV 减少尾块闲置容量，U8 缩小单个缓存元素的载荷，连续批处理在解码步之间接入请求。下文缓存大小按列出的维度计算，未计入分配器及量化元数据；吞吐和并发倍数仍需结合原始硬件、负载与音质测试记录才能复现。
 
 在[上一篇：图分离与调度实践](/zh/blog/how-qwen3-tts-makes-a-frame/)中，我们将 Qwen3-TTS 拆成三张子图，分别部署到 Ultra x7 358h 的 iGPU 与 NPU 上。
 
@@ -114,7 +117,7 @@ kv_precision: str = "u8"
 真正的解法是构建 **连续批处理 ([Continuous Batching](https://www.usenix.org/conference/osdi22/presentation/yu))**。这一思想最早由 Orca 系统提出，为了绕过 Python GIL 带来的高频调度卡顿，我们让 Python 管理请求，由 C++ 执行解码。
 
 ### 3.1 调度机制大解剖
-在 Python 端（[`qwen3_tts_ov/online_batch.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/online_batch.py)），我部署了一个名为 `OnlineBatchScheduler` 的守护线程。它管理着一切业务请求，但从不触碰实际的张量。
+在 Python 端（[`qwen3_tts_ov/online_batch.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/7ad76aad56301074ec689aac1d988d6461462916/qwen3_tts_ov/online_batch.py)），我部署了一个名为 `OnlineBatchScheduler` 的守护线程。它管理着一切业务请求，但从不触碰实际的张量。
 
 它的 `_loop` 以单次解码步（Single Step）为粒度运行。
 
@@ -159,3 +162,5 @@ for event in result:
 这种单步粒度的精密调度，最大化填平了 Ultra x7 358h iGPU 的计算管线，确保了无论高并发波峰如何突起，系统绝不出现长尾卡死现象。
 
 这次移植需要同时处理缓存分配、访存量和请求调度。Paged-KV 管分配粒度，U8 减少缓存读写，连续批处理则让新请求不必等待整批语音结束。它们共同决定了这些模型图能否用于并发服务。
+
+这里的历史缓存主要属于 Talker，而不是整条音频管线；[图分离文章](/zh/blog/how-qwen3-tts-makes-a-frame/)解释了这一边界。

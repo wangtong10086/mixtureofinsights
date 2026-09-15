@@ -1,20 +1,23 @@
 ---
-title: "Post-training is a data problem"
+title: "LLM post-training data: generation, verification and yield"
 description: "How ORBIT generates, filters, and verifies training trajectories, and how acceptance rate affects the cost of collecting data."
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 1
 series: "post-training"
 reading: "12 min read"
 tags: ["llm", "post-training", "synthetic-data", "rejection-sampling"]
 ---
 
-I spent days tuning PPO hyperparameters before concluding that the loss function is mostly irrelevant. Eliciting latent behaviors and shaping specific trajectories requires a massive volume of highly constrained, faithful demonstrations. You cannot crowd-source this. You have to synthesize it.
+ORBIT builds post-training datasets by generating trajectories, scoring them with a verifier, filtering failures and exporting a common JSONL format. The useful engineering question is how many usable examples each generation pass produces. The odds-growth calculation below is an illustrative model under a fixed improvement assumption; it is not a measured learning curve or a guarantee that stricter filtering improves yield.
 
-## The Generation Engines
+<span id="the-generation-engines" aria-hidden="true"></span>
 
-I built four data-generation and verification modules under [`orbit/data/`](https://github.com/wangtong10086/orbit/tree/main/orbit/data/). They all output a uniform JSONL schema (`messages`, `env`, `score`, `task_id`).
+## Four engines for generating post-training data
 
-**1. Deterministic Synthetic Trajectories.** I bypass the LLM entirely for scaffolding. In [`orbit/data/liveweb_teacher_gen.py`](https://github.com/wangtong10086/orbit/blob/main/orbit/data/liveweb_teacher_gen.py), my `TeacherGenerator` replays cached web topologies:
+I built four data-generation and verification modules under [`orbit/data/`](https://github.com/wangtong10086/orbit/tree/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/data). They all output a uniform JSONL schema (`messages`, `env`, `score`, `task_id`).
+
+**1. Deterministic Synthetic Trajectories.** I bypass the LLM entirely for scaffolding. In [`orbit/data/liveweb_teacher_gen.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/data/liveweb_teacher_gen.py), my `TeacherGenerator` replays cached web topologies:
 
 ```python
 gen = TeacherGenerator(cache_dir=cache_dir, include_plugins=include_plugins)
@@ -28,7 +31,7 @@ for record in result.records:
 
 These deterministic multi-tool trajectories give the model examples of the required structure before reasoning training.
 
-**2. Self-Play.** For well-defined environments, I implemented an OpenSpiel registry in [`orbit/data/game_gen.py`](https://github.com/wangtong10086/orbit/blob/main/orbit/data/game_gen.py). MCTS search or CFR policy snapshots play out matches. The generators only keep the winning trajectories.
+**2. Self-Play.** For well-defined environments, I implemented an OpenSpiel registry in [`orbit/data/game_gen.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/data/game_gen.py). MCTS search or CFR policy snapshots play out matches. The generators only keep the winning trajectories.
 
 **3. Rejection Sampling.** I generate many samples, apply the verifier, and discard failures. In `orbit/data/sft.py`, `filter_quality` executes the dedup logic:
 
@@ -45,9 +48,11 @@ if dedup:
 
 Rejection sampling implicitly executes a KL-regularized policy improvement. If the pass rate is $p$, best-of-$N$ guarantees at least one success with probability $1-(1-p)^N$. The resulting distribution is bounded at a KL divergence of roughly $\log N$. I get the policy improvement of RL without the rollout volatility, mirroring the dataset distillation mechanics proven in LLM alignment pipelines ([Touvron et al., 2023](https://arxiv.org/abs/2307.09288)).
 
-**4. The Verifier.** Human grading is impossible at this scale, so I rely entirely on programmatic constraints. `StaticTraceVerifier` in [`orbit/verifiers/static.py`](https://github.com/wangtong10086/orbit/blob/main/orbit/verifiers/static.py) maps trajectories to terminal scores.
+**4. The Verifier.** Human grading is impossible at this scale, so I rely entirely on programmatic constraints. `StaticTraceVerifier` in [`orbit/verifiers/static.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/verifiers/static.py) maps trajectories to terminal scores.
 
-## The Yield Flywheel
+<span id="the-yield-flywheel" aria-hidden="true"></span>
+
+## How verification yield affects data cost
 
 Generation, verification, and training form the following loop.
 
@@ -72,3 +77,5 @@ $$
 If I start with a $5\%$ yield ($p_0=0.05$) and $g=2$, four passes push the yield to $46\%$. But if the verifier is noisy, $g$ collapses to $1$.
 
 I dedicate zero engineering time to the training code; `build_ms_swift_dataset` is a static mapping function. I spend 90% of my compute and engineering budget improving the verifier rubric. Yield directly dictates compute cost. At a 5% pass rate, extracting 10,000 clean trajectories costs 200,000 generation passes. Tuning the verifier to halve that ratio is significantly more impactful than optimizing GPU utilization.
+
+The next decision is which checks belong in the [constraint verifier and reward model](/blog/what-are-you-rewarding/); their coverage determines what a passing trajectory actually means.

@@ -1,14 +1,15 @@
 ---
-title: "Google Wallet 不是 Play Integrity 那一关"
+title: "Play Integrity 通过后，Google Wallet 为什么仍绑卡失败"
 description: "Play Integrity 过了 STRONG，Wallet 还是拒绝加卡。问题不在本地伪装，而在支付后端对硬件证明的校验。"
 date: 2026-06-09
+updatedAt: 2026-09-15
 order: 1
 series: "android-hardening"
 reading: "8 分钟"
 tags: ["android", "attestation", "google-wallet", "tee"]
 ---
 
-我最初以为是配置问题。这台骁龙 8 Gen 2 设备刷了 LineageOS，Bootloader 已解锁，也装了 Magisk root。配置隐藏栈后，Play Integrity 返回 BASIC + DEVICE + STRONG，Wallet 却仍然无法绑卡。
+这次 Xiaomi 13 排查中，Play Integrity 返回 STRONG，绑卡令牌化仍然失败，TapAndPay 日志将线索指向存储密钥认证。公开 Android 文档解释证书字段，但仅凭客户端日志无法确认 Google 支付后端具体采用了哪条拒绝规则。
 
 添加任何卡片都在令牌化（tokenization）阶段失败，只提示 "不符合安全标准"。Play Integrity 的 STRONG 结果没有解释这次失败，我需要继续查绑卡流程。
 
@@ -45,3 +46,5 @@ Wallet 向 KeyStore 申请一个硬件背书的存储密钥（storage key），�
 我试过把 `pif.json` 里所有 `spoof*` 设为 `0`，试过注入 `!` 全链伪造模式，试过清空所有 GMS 数据。每次的 dump 日志都有数兆，最终仍然报 `Device fails attestation`。
 
 我用小米 vendor 的 `KmInstallKeybox` 二进制尝试了真正的 TEE 修复，写入 `persist` 分区恢复认证密钥。这套操作找回了 Widevine L1，但 Wallet 依然拒绝。修好的 TEE 现在会诚实地将 Bootloader 状态报成解锁， Play Integrity 退回 BASIC。只有重新上锁并刷回原厂引导镜像，才能让 `deviceLocked` 变为 true。这里需要区分完整性判决与密钥认证：前者在用户态操作，后者在硬件内完成。
+
+[Android 检测层次总览](/zh/blog/05-what-you-can-and-cant-hide/)进一步区分本地检测面与硬件证明。

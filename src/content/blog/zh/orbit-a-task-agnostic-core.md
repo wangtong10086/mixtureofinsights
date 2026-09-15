@@ -1,14 +1,15 @@
 ---
-title: "ORBIT 的内核为什么不懂任务"
+title: "ORBIT 任务插件：将任务校验移出通用执行核"
 description: "ORBIT 用任务插件处理请求校验和结果汇总，由同一个执行核负责 bundle 暂存、启动、监控和产物收集。"
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 2
 series: "orbit"
 reading: "12 分钟"
 tags: ["llm", "infrastructure", "architecture", "orbit", "design"]
 ---
 
-ORBIT 起初只跑训练，后来加入评测和数据采集。每加一种任务，我就往 runner 里加一条分支。这样接入很快，但任务各自的配置和处理逻辑也都堆进了执行器。
+ORBIT 将任务专属的解析、校验、bundle 构建和结果汇总交给 TaskPlugin，共享执行器负责暂存、放置、启动与收集。这个边界让新增任务更容易评审，但仍需要集成测试：格式错误的 bundle 可能越过接口，在共享内核中失败。
 
 我随后限制了执行核的职责：只处理 bundle、放置策略、启动模式和产物收集。训练、评测和采集的具体含义由 `TaskPlugin` 解释，以减少新增任务对执行器的影响。
 
@@ -48,7 +49,7 @@ ORBIT 起初只跑训练，后来加入评测和数据采集。每加一种任�
 +-------------------------------------------------------------------------+
 ```
 
-插件接口定义在 [`orbit/core/control/registry.py`](https://github.com/wangtong10086/mixtureofinsights/blob/main/src/orbit/core/control/registry.py) 中的 `TaskPlugin` 协议，共有四个方法：
+插件接口定义在 [`orbit/core/control/registry.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/core/control/registry.py) 中的 `TaskPlugin` 协议，共有四个方法：
 
 ```python
 class TaskPlugin(Protocol):
@@ -61,7 +62,7 @@ class TaskPlugin(Protocol):
     def summarize_result(self, *, submission, bundle, status, manifest) -> TaskSummary: ...
 ```
 
-执行核只认识 `JobBundle` 和 `TaskSummary`。在 [`orbit/tasks/training/plugin.py`](https://github.com/wangtong10086/mixtureofinsights/blob/main/src/orbit/tasks/training/plugin.py) 中，`TrainingPlugin` 校验 `dataset_path` 和 `output_dir`；而在评测插件里校验的则是 `environments`。这些任务字段不会进入执行核。
+执行核只认识 `JobBundle` 和 `TaskSummary`。在 [`orbit/tasks/training/plugin.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/tasks/training/plugin.py) 中，`TrainingPlugin` 校验 `dataset_path` 和 `output_dir`；而在评测插件里校验的则是 `environments`。这些任务字段不会进入执行核。
 
 控制内核严格依赖显式的插件注册，**从不直接 import 任务代码**。接线被限制在唯一的组合根 `build_default_task_registry` 中，局部 import 避免了任何全局副作用。
 
@@ -70,3 +71,5 @@ class TaskPlugin(Protocol):
 为了消灭隐藏的条件分支，我将运行时的一切变更限制在“模板加覆盖 (overrides)”的范畴内。控制核通过 `ExecutionTemplateRegistry.resolve` 将提交解析为带有白名单 diff 的 `ExecutionRequest`。
 
 如果设计出错，就会遭遇 [Joel Spolsky 提出的“漏抽象”定律 (The Law of Leaky Abstractions, 2002)](https://www.joelonsoftware.com/2002/11/11/the-law-of-leaky-abstractions/)：一个所谓的通用字段其实暗含了特定任务的假设。为避免这类问题，我坚持不在内核中写任何 `if`。新增任务的修改范围被限制在单个插件内部，各任务继续共用执行器的监控和产物回收逻辑。
+
+完整提交生命周期见[控制面概览](/zh/blog/a-control-plane-for-renting-gpus/)，具体 bundle 契约在下一篇展开。

@@ -1,14 +1,15 @@
 ---
-title: "Auditing from the app's eyes"
+title: "Android app-context audits: UID, SELinux and mount namespaces"
 description: "How UID, SELinux domain, and mount namespace affect an Android audit, with the limits of each method for inspecting an app's environment."
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 4
 series: "android-hardening"
 reading: "9 min read"
 tags: ["android", "selinux", "auditing", "nsenter"]
 ---
 
-To measure what a normal app could still observe, I needed more than `adb shell`. `adb shell` runs as UID 2000 in the `shell` SELinux domain, while an app runs as UID 10000+ in `untrusted_app` and inside an isolated mount namespace that Shamiko sets up.
+An Android audit must specify which context it reproduces. Changing UID, entering a mount namespace and reading process maps answer different questions; none alone reproduces a complete application process. This note compares those methods and the service-discovery observations from the original device.
 
 I used three methods, each covering a different part of the app's environment:
 
@@ -30,3 +31,5 @@ deny isolated_app  lineage_hardware_service    service_manager { find }
 ```
 
 I persisted the rules through `sepolicy.rule` in a Magisk module. They blocked app discovery of these services while allowing the system domains that depend on them to keep working. Hidden-API gating only covers Java calls; SELinux enforces the discovery restriction in the kernel, regardless of the app's implementation.
+
+A later [PayPal App Zygote investigation](/blog/06-paypal-crash-two-root-signals/) shows a case where testing only the ordinary app or isolated child would miss the relevant process.

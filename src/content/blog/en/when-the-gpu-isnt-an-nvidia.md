@@ -1,14 +1,15 @@
 ---
-title: "When the GPU isn't an NVIDIA"
+title: "Qwen3-TTS on Intel: OpenVINO inference without CUDA"
 description: "Running Qwen3-TTS on Intel hardware with OpenVINO: memory bandwidth, quantization, KV caches, and streaming batch scheduling."
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 1
 series: "openvino-tts"
 reading: "14 min read"
 tags: ["llm", "inference", "openvino", "tts", "edge"]
 ---
 
-The baseline assumption of modern AI deployment is a PCIe-attached NVIDIA accelerator. We rely on CUDA graphs, FlashAttention, and vLLM continuous batching to handle the costs of autoregressive decoding. When the target hardware is an Intel iGPU or an Arc card on a consumer edge device, this deployment stack is unavailable. I rebuilt the inference engine for `qwen3-tts-openvino` directly on top of OpenVINO C++ APIs for low-latency streaming without CUDA.
+This series follows a Qwen3-TTS runtime built with OpenVINO for Intel devices: graph export, quantized weights and KV state, native execution and streaming scheduling. The bandwidth equations are estimates under stated assumptions. They do not establish measured throughput, and this project-specific implementation is not an inventory of everything available in the OpenVINO ecosystem.
 
 ## The missing primitives
 
@@ -47,7 +48,7 @@ This equation drove every engineering choice I made in the runtime. I implemente
 
 ## Hardware layout and caching
 
-OpenVINO provides the graph compiler and the device abstractions (`ov.Core`). In [`qwen3_tts_ov/runtime.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/runtime.py), the `compile_model` wrapper detects the device topology. If it finds a GPU, it enforces `GPU_ENABLE_LARGE_ALLOCATIONS` to bypass default driver caps.
+OpenVINO provides the graph compiler and the device abstractions (`ov.Core`). In [`qwen3_tts_ov/runtime.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/7ad76aad56301074ec689aac1d988d6461462916/qwen3_tts_ov/runtime.py), the `compile_model` wrapper detects the device topology. If it finds a GPU, it enforces `GPU_ENABLE_LARGE_ALLOCATIONS` to bypass default driver caps.
 
 ```python
 config = {"INFERENCE_PRECISION_HINT": precision_hint}
@@ -73,3 +74,5 @@ $$
 To stream 12 Hz frames without buffer underruns, $\text{RTF}$ must strictly be $< 1$. At 12 Hz, the absolute budget is $\approx 83\,\text{ms}$ per frame. This budget must encompass the Talker AR step, the greedy subcode generation, and the stream decoder chunk. Rebuilding the continuous batcher directly on the OpenVINO C++ bindings was the only way to squeeze the inference loop tight enough to clear that $83\,\text{ms}$ window under concurrent load.
 
 I mapped the tensor memory boundaries, bypassed Python thread locks, and bound the decoder to the NPU.
+
+Continue with [Talker, Subcode and decoder graph splitting](/blog/how-qwen3-tts-makes-a-frame/) to see which parts of a frame need different scheduling.

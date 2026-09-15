@@ -1,13 +1,14 @@
 ---
-title: "Neovim：用 OSC 52 穿越终端剪贴板屏障"
+title: "Neovim OSC 52：通过 SSH、WSL 复制与终端粘贴"
 description: "在 SSH 和 WSL 中配置 Neovim 0.10 的 OSC 52 复制，并用终端粘贴快捷键读取本地剪贴板。"
 date: 2024-06-16
+updatedAt: 2026-09-15
 order: 6
 reading: "4 分钟"
 tags: ["neovim", "osc52", "terminal"]
 ---
 
-配置分布式节点时，我经常通过多层 SSH 或 WSL 使用 Neovim。`yank` 复制的内容只留在远程编辑器的寄存器里，默认不会进入本地系统剪贴板。
+在 Neovim 0.10 及以上版本中，只要终端允许 OSC 52 写入，远端 yank 就能经终端输出到达宿主剪贴板。下方配置的粘贴回退只读取 Neovim 寄存器；粘贴宿主剪贴板时使用终端快捷键。终端与多路复用器必须允许该序列通过，读取剪贴板则是另一项能力。
 
 常见做法是配置 X11 转发、共享剪贴板守护进程或 `xclip`/`pbcopy` 代理，但这些方案的网络和权限配置比较脆弱。Neovim 0.10 加入了原生 OSC 52 支持（见 [Neovim PR #25872](https://github.com/neovim/neovim/pull/25872)），可以直接通过终端输出传送剪贴板内容。
 
@@ -51,3 +52,5 @@ vim.g.clipboard = {
 这里的 `copy` 和 `paste` 不能对称处理。复制只需向 TTY 发送转义序列，粘贴则需要终端回传数据：Neovim 必须向终端发送 OSC 52 查询指令，并阻塞等待终端将本地剪贴板内容回传。
 
 出于安全沙箱隔离的考虑，现代终端（包括 Windows Terminal）往往会阻断这种被动的远程剪贴板探测请求。所以配置中的 `my_paste` 不查询 TTY，只读取 Neovim 的匿名寄存器 `"`。当确实需要向编辑器粘贴本地数据时，直接利用宿主机终端原生快捷键（如 `<C-v>` 或 `<C-S-v>`），通过标准输入流（stdin）模拟普通字符键入完成写入。
+
+远程工作的另一个问题是保留任务记录：[租用 GPU 的控制面文章](/zh/blog/a-control-plane-for-renting-gpus/)说明了如何让记录独立于 SSH 会话。

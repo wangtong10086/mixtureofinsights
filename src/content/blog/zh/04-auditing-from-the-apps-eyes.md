@@ -1,14 +1,15 @@
 ---
-title: "别用 adb shell 代替 App 的眼睛"
+title: "Android 应用上下文审计：UID、SELinux 与挂载命名空间"
 description: "用 App 的 UID、SELinux 域、挂载命名空间和进程映射检查检测面，并区分各项检查能看到什么。"
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 4
 series: "android-hardening"
 reading: "9 分钟"
 tags: ["android", "selinux", "auditing", "nsenter"]
 ---
 
-完成上层拦截后，我要检查 App 还能读到哪些特征。直接使用 `adb shell` 并不能代表 App 的环境：它以 UID 2000 运行于 `shell` SELinux 域中，看到的是未经 Magisk 和 Shamiko 处理的全局挂载表。以它的视角去排查 `untrusted_app` 能获取的特征，会产生大量的假阴性和假阳性。
+Android 审计需要先说明复现了哪一层上下文。切换 UID、进入挂载命名空间和读取进程映射分别回答不同问题，任何一项都不能单独重建完整 App 进程。本文比较这些方法，并记录原设备上的服务发现结果。
 
 我分别检查了 App 的 SELinux 约束、挂载命名空间和内存映射：
 
@@ -40,3 +41,5 @@ deny ephemeral_app lineage_hardware_service    service_manager { find }
 ```
 
 三类 App 域与十类服务类型交叉，共生成 30 条拒绝规则。系统域仍可访问，因此 Lineage 的内置进程能正常解析服务并工作，第三方 App 则无法通过 `service_manager` 发现这些服务。限制由内核执行，不依赖目标程序使用哪种调用方式。
+
+后来的 [PayPal App Zygote 排查](/zh/blog/06-paypal-crash-two-root-signals/)提供了具体例子：只测普通 App 或隔离子进程，会漏掉真正执行探测的进程。

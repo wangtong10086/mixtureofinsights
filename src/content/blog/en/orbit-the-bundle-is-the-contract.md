@@ -1,20 +1,21 @@
 ---
-title: "The bundle is the contract"
+title: "ORBIT job bundles: logs, artifacts and dependency provenance"
 description: "The ORBIT bundle layout: where run state, prechecks, logs, and artifacts live, and how pinned dependencies make a completed run easier to inspect."
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 3
 series: "orbit"
 reading: "12 min read"
 tags: ["llm", "infrastructure", "observability", "orbit", "reproducibility"]
 ---
 
-The execution core passes a bundle to the runtime. Once a rented GPU host terminates, I can't return to it for an interactive debugging session, so the bundle must preserve enough information to explain the run.
+A useful experiment bundle records what was requested, what actually ran and what was collected. ORBIT separates job.json, inputs, scripts, runtime state and artifacts, then records imported dependency paths and pinned revisions. These records help diagnose a run; exact numerical reproduction also depends on data, randomness and the execution environment.
 
 The control plane generates a bundle. The execution plane consumes it and populates output. Because the contract is mapped to a physical directory layout, it outlives both the control process and the execution host.
 
 ## The Directory Layout
 
-In [`orbit/core/execution/bundle.py`](https://github.com/wangtong10086/orbit/blob/main/orbit/core/execution/bundle.py), the directory structure is defined in code:
+In [`orbit/core/execution/bundle.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/core/execution/bundle.py), the directory structure is defined in code:
 
 ```python
 def ensure_structure(self) -> None:
@@ -91,3 +92,5 @@ I also run `git status --porcelain` and kill the execution if the tree is dirty.
 I interact with the upstream `InfiniteActor.evaluate()` purely as a black box. If I need a bridge for interactive synthesis, I spin up a Unix socket server without mutating upstream semantics. Any attempt to fork and "fix" the upstream logic permanently severs comparability with external benchmarks.
 
 I persist only a thin ORBIT manifest (`schema_version: affinetes_swe_blackbox_run.v1`) alongside the raw upstream artifacts. Together, the manifest and artifacts preserve the run for later inspection.
+
+The [task-plugin boundary](/blog/orbit-a-task-agnostic-core/) explains who constructs this bundle and who interprets its results.
