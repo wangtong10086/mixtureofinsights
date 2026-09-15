@@ -14,7 +14,7 @@ const em = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wi
       <div class="profile-avatar">王</div>
       <div>
         <h1 class="profile-name">Wang Tong · 王通</h1>
-        <p class="profile-role">LLM post-training &amp; agent algorithm engineer — alignment, RL, reward modeling.</p>
+        <p class="profile-role">LLM post-training and agent engineer, focused on model behavior, data feedback loops, and system boundaries.</p>
       </div>
     </div>
 
@@ -26,24 +26,19 @@ const em = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wi
 
     <div class="prose">
       <p>
-        I work on <strong>LLM post-training and alignment</strong>: SFT, DPO, RLHF / RLVR,
-        PPO, GRPO, and reward modeling. My work also covers synthetic data, self-play,
-        rejection sampling, and LLM-as-judge, from data generation through evaluation and deployment.
+        I work on LLM post-training and agents, focusing on data generation,
+        reward design, evaluation, and system troubleshooting.
       </p>
-      <p><strong>Work.</strong> RL for reasoning &amp; planning agents (a GRPO + reward-model
-        pipeline that lifted complex-constraint satisfaction ~12% on an internal planning
-        benchmark); online distillation (a Qwen 35B→4B Forward-KL setup on 8×H200); evaluation
-        harnesses for browser and software-engineering agents (LiveWeb, SWE trajectories); and the
-        training/eval orchestration to run all of it on remote GPUs. Tooling I reach for: PyTorch,
-        DeepSpeed / Megatron, vLLM / SGLang, ms-swift, and a lot of CUDA.
+      <p>
+        These articles use equations, code, and logs to document training behavior,
+        run artifacts, and the debugging process.
       </p>
-      <p><strong>About this blog.</strong> The name is a reference to <em>Mixture of Experts</em>.
+      <p><strong>About this blog.</strong> The name comes from <em>Mixture of Experts</em>.
         I write about training data and algorithms, OpenVINO inference, remote GPU orchestration,
         Android debugging, and the tools used along the way.
       </p>
       <p>
-        Hiring for LLM post-training / agents, building something at this layer, or just want to
-        compare notes? Reach me on
+        Working on similar problems, or want to discuss an article? Find me on
         <a href={GITHUB} target="_blank" rel="noopener">GitHub</a>,
         <a href={LINKEDIN} target="_blank" rel="noopener">LinkedIn</a>, or by
         <a href={`mailto:${EMAIL}`}>email</a>.
