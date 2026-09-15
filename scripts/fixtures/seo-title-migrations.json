@@ -1,0 +1,146 @@
+{
+  "en/post-training-is-a-data-problem.md": {
+    "before": "title: \"Post-training is a data problem\"",
+    "after": "title: \"LLM post-training data: generation, verification and yield\""
+  },
+  "zh/post-training-is-a-data-problem.md": {
+    "before": "title: \"后训练是个数据问题\"",
+    "after": "title: \"LLM 后训练数据：生成、验证与通过率\""
+  },
+  "en/dpo-when-you-cant-afford-rlhf.md": {
+    "before": "title: \"DPO when I can't afford RLHF\"",
+    "after": "title: \"DPO for role-play: preference pairs and chosen likelihood\""
+  },
+  "zh/dpo-when-you-cant-afford-rlhf.md": {
+    "before": "title: \"算力不够上 RLHF，就把 DPO 用对\"",
+    "after": "title: \"角色扮演 DPO：偏好对与 chosen 概率监控\""
+  },
+  "en/what-are-you-rewarding.md": {
+    "before": "title: \"What am I actually rewarding?\"",
+    "after": "title: \"Planning-agent rewards: verifiers, reward models and reward hacking\""
+  },
+  "zh/what-are-you-rewarding.md": {
+    "before": "title: \"你到底在奖励什么?\"",
+    "after": "title: \"规划 Agent 奖励设计：验证器、奖励模型与奖励漏洞\""
+  },
+  "en/a-control-plane-for-renting-gpus.md": {
+    "before": "title: \"A control plane for renting GPUs\"",
+    "after": "title: \"ORBIT: a control plane for experiments on rented GPUs\""
+  },
+  "zh/a-control-plane-for-renting-gpus.md": {
+    "before": "title: \"租 GPU 的控制面\"",
+    "after": "title: \"ORBIT：租用 GPU 上的实验控制面\""
+  },
+  "en/how-qwen3-tts-makes-a-frame.md": {
+    "before": "title: \"How Qwen3-TTS makes a frame of sound\"",
+    "after": "title: \"Qwen3-TTS on OpenVINO: Talker, Subcode and streaming decode\""
+  },
+  "zh/how-qwen3-tts-makes-a-frame.md": {
+    "before": "title: \"拆解 Qwen3-TTS：OpenVINO 移植过程中的图分离与调度实践\"",
+    "after": "title: \"Qwen3-TTS 的 OpenVINO 拆图：Talker、Subcode 与流式解码\""
+  },
+  "en/paged-kv-batching-without-vllm.md": {
+    "before": "title: \"Paged-KV, U8, and batching where vLLM isn't\"",
+    "after": "title: \"OpenVINO Qwen3-TTS: Paged-KV, U8 cache and continuous batching\""
+  },
+  "zh/paged-kv-batching-without-vllm.md": {
+    "before": "title: \"无 vLLM 环境下的 Paged-KV 与连续批处理调度\"",
+    "after": "title: \"OpenVINO Qwen3-TTS：Paged-KV、U8 缓存与连续批处理\""
+  },
+  "en/cold-start-then-climb.md": {
+    "before": "title: \"Cold-start, then climb\"",
+    "after": "title: \"SFT cold-start before GRPO for constrained planning\""
+  },
+  "zh/cold-start-then-climb.md": {
+    "before": "title: \"先冷启动，再让 RL 往上爬\"",
+    "after": "title: \"约束规划的 SFT 冷启动与 GRPO\""
+  },
+  "en/orbit-a-task-agnostic-core.md": {
+    "before": "title: \"A task-agnostic core, and plugins that earn their keep\"",
+    "after": "title: \"ORBIT task plugins: validation outside the execution core\""
+  },
+  "zh/orbit-a-task-agnostic-core.md": {
+    "before": "title: \"ORBIT 的内核为什么不懂任务\"",
+    "after": "title: \"ORBIT 任务插件：将任务校验移出通用执行核\""
+  },
+  "en/orbit-the-bundle-is-the-contract.md": {
+    "before": "title: \"The bundle is the contract\"",
+    "after": "title: \"ORBIT job bundles: logs, artifacts and dependency provenance\""
+  },
+  "zh/orbit-the-bundle-is-the-contract.md": {
+    "before": "title: \"bundle 即契约\"",
+    "after": "title: \"ORBIT 任务 bundle：日志、产物与依赖来源\""
+  },
+  "en/self-play-and-the-games-models-teach-themselves.md": {
+    "before": "title: \"Self-play, and the games my models teach themselves\"",
+    "after": "title: \"OpenSpiel training data: MCTS, CFR and trajectory filtering\""
+  },
+  "zh/self-play-and-the-games-models-teach-themselves.md": {
+    "before": "title: \"自我博弈：让模型从游戏里捞数据\"",
+    "after": "title: \"OpenSpiel 训练数据：MCTS、CFR 与轨迹筛选\""
+  },
+  "en/when-the-gpu-isnt-an-nvidia.md": {
+    "before": "title: \"When the GPU isn't an NVIDIA\"",
+    "after": "title: \"Qwen3-TTS on Intel: OpenVINO inference without CUDA\""
+  },
+  "zh/when-the-gpu-isnt-an-nvidia.md": {
+    "before": "title: \"离开 N 卡后的真实世界：Ultra x7 358h 平台上的 TTS 推理框架重构\"",
+    "after": "title: \"Intel 平台上的 Qwen3-TTS：不依赖 CUDA 的 OpenVINO 推理\""
+  },
+  "en/01-the-google-wallet-wall.md": {
+    "before": "title: \"The Google Wallet Wall\"",
+    "after": "title: \"Google Wallet card-add failure despite Play Integrity STRONG\""
+  },
+  "zh/01-the-google-wallet-wall.md": {
+    "before": "title: \"Google Wallet 不是 Play Integrity 那一关\"",
+    "after": "title: \"Play Integrity 通过后，Google Wallet 为什么仍绑卡失败\""
+  },
+  "en/02-stockmask.md": {
+    "before": "title: \"StockMask: a stock illusion without touching a single app\"",
+    "after": "title: \"StockMask: caller-aware LineageOS feature filtering in system_server\""
+  },
+  "zh/02-stockmask.md": {
+    "before": "title: \"StockMask：不碰 App，也能造一层原厂感\"",
+    "after": "title: \"StockMask：在 system_server 中按调用方过滤 LineageOS 特性\""
+  },
+  "en/03-the-logcat-leak.md": {
+    "before": "title: \"The logcat leak\"",
+    "after": "title: \"Android READ_LOGS: auditing permission and SELinux context\""
+  },
+  "zh/03-the-logcat-leak.md": {
+    "before": "title: \"十五个 App 正在读整台设备的日志\"",
+    "after": "title: \"Android READ_LOGS：同时检查权限与 SELinux 上下文\""
+  },
+  "en/04-auditing-from-the-apps-eyes.md": {
+    "before": "title: \"Auditing from the app's eyes\"",
+    "after": "title: \"Android app-context audits: UID, SELinux and mount namespaces\""
+  },
+  "zh/04-auditing-from-the-apps-eyes.md": {
+    "before": "title: \"别用 adb shell 代替 App 的眼睛\"",
+    "after": "title: \"Android 应用上下文审计：UID、SELinux 与挂载命名空间\""
+  },
+  "en/05-what-you-can-and-cant-hide.md": {
+    "before": "title: \"What you can and can't hide\"",
+    "after": "title: \"Rooted Android detection: userspace signals and attestation limits\""
+  },
+  "zh/05-what-you-can-and-cant-hide.md": {
+    "before": "title: \"一台 root 手机能藏住什么\"",
+    "after": "title: \"Root Android 的检测面：用户态信号与硬件证明边界\""
+  },
+  "en/06-paypal-crash-two-root-signals.md": {
+    "before": "title: \"Debugging a PayPal startup crash: a device-number gap and an App Zygote errno\"",
+    "after": "title: \"PayPal startup crash: filesystem device numbers and App Zygote errno\""
+  },
+  "zh/06-paypal-crash-two-root-signals.md": {
+    "before": "title: \"PayPal 闪退复盘：从一个设备号缺口追到 App Zygote 的 SELinux 错误码\"",
+    "after": "title: \"PayPal 启动闪退：文件系统设备号与 App Zygote 错误码\""
+  },
+  "en/nvim-yank-osc52.md": {
+    "before": "title: \"Neovim: yank to the system clipboard (OSC 52)\"",
+    "after": "title: \"Neovim OSC 52: copy over SSH and WSL, paste from the terminal\""
+  },
+  "zh/nvim-yank-osc52.md": {
+    "before": "title: \"Neovim：用 OSC 52 穿越终端剪贴板屏障\"",
+    "after": "title: \"Neovim OSC 52：通过 SSH、WSL 复制与终端粘贴\""
+  }
+}

@@ -1,14 +1,15 @@
 ---
-title: "What am I actually rewarding?"
+title: "Planning-agent rewards: verifiers, reward models and reward hacking"
 description: "How a planning agent combines constraint verifiers and reward models, with process rewards, KL regularization, and checks for reward overoptimization."
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 3
 series: "post-training"
 reading: "13 min read"
 tags: ["llm", "rl", "reward-model", "rlvr", "reward-hacking"]
 ---
 
-Most of my RL post-training work goes into the reward. The policy optimizes the number I define, and exploits every gap between that number and the behavior I want. Changing the optimizer doesn't close those gaps.
+A planning agent needs separate signals for hard constraints and soft judgments. This implementation checks budget and time-window constraints programmatically, leaves less explicit quality judgments to a reward model, and compares reward gains with held-out evaluation. The verifier code shows how scores are combined; it does not establish that the checks are complete or independently verify the reported internal benchmark gain.
 
 This is an instance of Goodhart's law — when a measure becomes a target, it ceases to be a good measure. [Categorizing Variants of Goodhart's Law (Manheim & Garrabrant, 2018)](https://arxiv.org/abs/1803.04585) provides a useful taxonomy for how this breaks down into regressional, extremal, and adversarial failures.
 
@@ -52,9 +53,9 @@ Hard, checkable constraints go to an exact verifier; soft quality goes to a rewa
 
 ## What my verifier actually is in code
 
-In my codebase, a verifier is a small `Protocol` in [`orbit/verifiers/base.py`](https://github.com/wangtong10086/mixtureofinsights/blob/main/orbit/verifiers/base.py) with one job — turn a trajectory into a structured reward. The contract is two pydantic models. The `VerifierSpec` holds the knobs; the `VerifierResult` holds the decomposed output.
+In my codebase, a verifier is a small `Protocol` in [`orbit/verifiers/base.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/verifiers/base.py) with one job — turn a trajectory into a structured reward. The contract is two pydantic models. The `VerifierSpec` holds the knobs; the `VerifierResult` holds the decomposed output.
 
-The reward is not a single scalar — it's decomposed across the trajectory. My implementation, `StaticTraceVerifier.verify` in [`orbit/verifiers/static.py`](https://github.com/wangtong10086/mixtureofinsights/blob/main/orbit/verifiers/static.py), builds a per-step process reward out of four weighted terms:
+The reward is not a single scalar — it's decomposed across the trajectory. My implementation, `StaticTraceVerifier.verify` in [`orbit/verifiers/static.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/verifiers/static.py), builds a per-step process reward out of four weighted terms:
 
 ```python
 reward = (
@@ -70,7 +71,7 @@ if idx == len(local_scores) - 1:
     reward += self.spec.lambda_u * terminal_score
 ```
 
-The first term is potential-based shaping — the change in a potential $\phi$ between steps. By Ng et al.'s classic result, this adds dense guidance without changing the optimal policy, which is my principled way to avoid one whole class of reward hacks. The verifier then discounts these into returns, subtracts a `trajectory_mean` baseline, and clips the resulting advantage weights to `±process_weight_max`. That clip is itself a guardrail: no single step's advantage can blow up and dominate the update.
+The first term is potential-based shaping — the change in a potential $\phi$ between steps. Policy-invariance results for potential shaping require their discount and boundary conditions. This implementation uses an un-discounted potential difference and discounts returns later; the excerpt alone does not justify an invariance or no-reward-hacking guarantee. The verifier then discounts these into returns, subtracts a `trajectory_mean` baseline, and clips the resulting advantage weights to `±process_weight_max`. That clip is itself a guardrail: no single step's advantage can blow up and dominate the update.
 
 ## Over-optimization has a scaling law
 
@@ -82,7 +83,9 @@ $$
 
 which captures exactly that rise-then-fall: early KL buys real improvement, and past a budget each additional nat of divergence buys proxy gains that cost true performance. This has two consequences for training. First, there is an optimal KL distance — a point where the gold reward peaks — and training past it makes the model genuinely worse while my dashboard says it's improving. Second, the budget scales with RM quality: a bigger, better-trained RM pushes the peak further out, but no finite RM removes the peak.
 
-## How I close the gap
+<span id="how-i-close-the-gap" aria-hidden="true"></span>
+
+## Held-out checks for reward overoptimization
 
 I push checkable things into the verifier. Making the verifier complete matters more than any other change I can make.
 
@@ -97,3 +100,5 @@ The reward reweights the reference policy, and $\beta$ controls the strength of 
 As the policy improves, I refresh the RM on its new failures. The new hacks are exactly the cases the RM never saw. I periodically label the fresh failure modes and retrain the RM — otherwise the RM falls behind the policy.
 
 The planning agent's complex-constraint satisfaction rose ~12% on my internal benchmark. The gain came from completing the constraint reward: closing verifier gaps, moving hard constraints out of the RM, and addressing each new exploit. The optimizer stayed the same.
+
+The verifier also controls which examples survive in the [post-training data pipeline](/blog/post-training-is-a-data-problem/), so auditing reward gaps is part of dataset quality control.

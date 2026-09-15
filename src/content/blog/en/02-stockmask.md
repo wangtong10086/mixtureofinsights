@@ -1,14 +1,15 @@
 ---
-title: "StockMask: a stock illusion without touching a single app"
+title: "StockMask: caller-aware LineageOS feature filtering in system_server"
 description: "A 200-line module filters LineageOS features and permissions in system_server by caller UID, without injecting into the apps making the requests."
 date: 2026-06-09
+updatedAt: 2026-09-15
 order: 2
 series: "android-hardening"
 reading: "12 min read"
 tags: ["android", "lsposed", "lineageos", "system_server"]
 ---
 
-After I hid the package list with HideMyApplist, banking apps still showed human-verification challenges. PackageManager exposed another way to identify LineageOS: apps could query its system features through Binder calls into `system_server`.
+StockMask filters selected PackageManager feature and permission responses in system_server according to the Binder caller. The article explains the scope and Android-version-dependent entry points. Its module source is in a private project; the snippets are examples from the original investigation, not a publicly reproducible full module or proof that all detection channels are removed.
 
 ```text
 $ pm list features | grep lineage
@@ -72,3 +73,5 @@ I caught a bug early on. `hasSystemFeature` filtered correctly, but `getSystemAv
 For the permissions, I applied the identical caller-filtered pattern to `PermissionManagerService`, nulling out `getPermissionInfo` for Lineage permissions and slicing them out of `queryPermissionsByGroup`.
 
 The apps' own processes had no injected library in `/proc/self/maps` or hooked-method signature for RASP to find. The module changed the response in `system_server`, before it crossed Binder.
+
+Check the actual caller environment using [UID, SELinux domain and mount namespace](/blog/04-auditing-from-the-apps-eyes/) rather than treating a root-shell response as an app result.

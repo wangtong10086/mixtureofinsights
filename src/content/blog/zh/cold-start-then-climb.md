@@ -1,14 +1,15 @@
 ---
-title: "先冷启动，再让 RL 往上爬"
+title: "约束规划的 SFT 冷启动与 GRPO"
 description: "约束规划任务中的 SFT 冷启动与 GRPO：如何收集种子、配置训练、计算组内优势，以及检查无有效梯度的采样组。"
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 2
 series: "post-training"
 reading: "13 分钟"
 tags: ["llm", "rl", "grpo", "sft", "reasoning"]
 ---
 
-第一次在那个规划任务上直接跑 RL 时，奖励曲线几乎是平的。偶尔有一点有效信号，也被高方差的梯度噪声淹没。模型并非完全丧失能力，而是它通过随机游走触及可用轨迹的概率过低；策略梯度只能放大已采样的分布，无法凭空创造未知的路径。
+这套流程先收集通过验证的规划轨迹，做 SFT 种子训练，再用组内相对奖励运行 GRPO，适用于初始策略很少采到有效方案的场景。需要监控奖励不完全相同的采样组占比：如果所有回答获得相同的任务分数，增加 rollout 成本也不会产生有用的组内对比。
 
 SFT 冷启动的作用是提高可用轨迹的采样概率，不必先教会整个任务。这套 SFT 预热流程解决了梯度空转的问题，让后续 RL 能采到可强化的行为。正如 [*DeepSeek-R1* (2025)](https://arxiv.org/abs/2501.12948) 论文中在 R1-Zero 上的消融实验所展示的：纯 RL 容易陷入语言退化和早期探索崩溃，少量优质冷启动数据可以解决这一问题。
 
@@ -20,9 +21,9 @@ $$
 \nabla_\theta J(\theta) \;=\; \mathbb{E}_{y \sim \pi_\theta}\big[\, A(y)\, \nabla_\theta \log \pi_\theta(y \mid x) \,\big]
 $$
 
-这是一个对策略自身采样的期望操作。如果一条高价值轨迹在 base 模型下的先验概率是 $10^{-4}$，而在 batch 内对每个 prompt 只采样 8 条 rollout，那么平均 1,250 个 prompt 才能采到一次。其余 9,999 次反向传播贡献的全是无向噪声。概率趋近于零，意味着期望梯度也趋近于零，仅提高奖励也无济于事。
+这是一个对策略自身采样的期望操作。如果一条高价值轨迹在 base 模型下的先验概率是 $10^{-4}$，而在 batch 内对每个 prompt 只采样 8 条 rollout，那么平均 1,250 个 prompt 才能采到一次。其余 9,999 条样本在这个期望计算中不是成功轨迹，但仅凭成功率不能判断其梯度贡献全部是无向噪声。概率趋近于零，意味着期望梯度也趋近于零，仅提高奖励也无济于事。
 
-更棘手的是稀疏奖励下的采样方差。在 0/1 极性奖励中，梯度估计方差与 $p(1-p)$ 成正比，恰好在成功率最低的区间（即最需要定向引导的初始阶段）达到灾难性的极值。这就是为什么“直接用 base 做 RL”会表现为长达数千步的随机游走。
+更棘手的是稀疏奖励下的采样方差。在 0/1 极性奖励中，梯度估计方差与 $p(1-p)$ 成正比，该表达式描述伯努利结果的方差，在成功率为一半时最大；稀有成功的问题是相对估计误差较大。完整策略梯度的方差还取决于优势与对数策略梯度，不能仅由成功率推出。这就是为什么“直接用 base 做 RL”会表现为长达数千步的随机游走。
 
 SFT 冷启动要提高这个采样概率，将 $p(\text{高价值轨迹})$ 从 $10^{-4}$ 提升到 $10^{-1}$ 的数量级。在这个概率密度下，8 条样本的局部 batch 终于能稳定产出正负对比，GRPO 也就能获得有效的更新信号。SFT 购买的是采样效率，而非绝对能力。
 
@@ -35,7 +36,7 @@ SFT 冷启动要提高这个采样概率，将 $p(\text{高价值轨迹})$ 从 $
 3. **SFT 形状对齐**：使用上述种子在 base 模型上微调 1-2 个 epoch。让模型学会正确的输出格式。
 4. **主 GRPO 阶段**：切换训练类型，由真实的业务奖励（约束验证、耗时评估）驱动模型强化能力。
 
-在工程实现上，这两段逻辑被统合在 [`orbit/training/config.py`](https://github.com/wangtong10086/orbit/blob/main/orbit/training/config.py) 中的 `SwiftConfig`。通过简单的 `train_type` 翻转即可切换引擎。当设定 `train_type="rlhf"` 与 `rlhf_type="grpo"` 时，会输出 GRPO 对应的配置项：
+在工程实现上，这两段逻辑被统合在 [`orbit/training/config.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/training/config.py) 中的 `SwiftConfig`。通过简单的 `train_type` 翻转即可切换引擎。当设定 `train_type="rlhf"` 与 `rlhf_type="grpo"` 时，会输出 GRPO 对应的配置项：
 
 ```python
 if self.train_type == "rlhf":
@@ -52,7 +53,7 @@ if self.train_type == "rlhf":
             d["reward_funcs"] = self.reward_funcs
 ```
 
-`num_generations` 就是组大小 $K$，`beta` 控制 KL 惩罚，而 `reward_funcs` 则是注入的验证器算子。一切都在 [`orbit/training/sft.py`](https://github.com/wangtong10086/orbit/blob/main/orbit/training/sft.py) 中的 `SwiftBackend.validate_config` 被严格收束。
+`num_generations` 就是组大小 $K$，`beta` 控制 KL 惩罚，而 `reward_funcs` 则是注入的验证器算子。一切都在 [`orbit/training/sft.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/training/sft.py) 中的 `SwiftBackend.validate_config` 被严格收束。
 
 ## 剥离 Critic：GRPO 的降本增效
 
@@ -100,3 +101,5 @@ $$
 3. **塑形变量的风险**：给模型注入长度奖励能强制拉长思维链，但也等于向优化器暴露了新的攻击面。
 
 这些检查会影响奖励塑形和采样预算。冷启动先提高可用轨迹的概率，GRPO 再用组内比较更新策略；两阶段都需要持续观察方差和奖励行为。
+
+种子筛选依赖[数据生成与验证管线](/zh/blog/post-training-is-a-data-problem/)，下一篇再展开奖励设计。

@@ -10,6 +10,7 @@ let articles = 0;
 for (const url of Object.keys(manifest.pages)) {
   const route = new URL(url).pathname;
   const html = read('dist' + route + 'index.html');
+  if (route !== '/') assert.ok(redirects.includes(`${route.slice(0,-1)} ${route} 301`));
   const blocks = [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map(m => JSON.parse(m[1]));
   assert.ok(blocks.length, `${route}: missing JSON-LD`);
   const entity = blocks[0];

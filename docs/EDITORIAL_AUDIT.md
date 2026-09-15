@@ -78,3 +78,7 @@
 | ORBIT/后训练中文文章的源码引用 | 不只最初两处，多个链接指向本站仓库 `mixtureofinsights/blob/main/src/orbit/...`，而 SOURCES 指向独立 ORBIT 仓库。 | 逐一确认文件和 revision 后独立修复；本轮没有猜测链接目标或更换来源锚点。 |
 
 前一阶段记录的内部成绩、训练预算、拒绝采样推导、硬件规格和双语范围问题仍未解决。此处完整阅读和发现疑点，不等同于完成事实审查。
+
+## 2026-09-15 SEO review follow-up
+
+The bilingual source review and unresolved experimental claims are tracked in `SEO_CONTENT_REVIEW.md`. Broken public repository paths are corrected and pinned to inspected commits. The TTS cached Subcode claim, undiscounted potential shaping, Bernoulli variance explanation and self-play filtering threshold are corrected in prose. Original code/math/diagrams remain protected; qualifications distinguish their actual scope. Private Android code is no longer represented as publicly accessible.

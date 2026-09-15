@@ -233,7 +233,7 @@ rehype-katex) · hand-drawn inline SVG diagrams · cover images via Cloudflare
 
 ## Secrets note (Android series)
 
-The Android posts are grounded in the public `fuxi-stealth` code and a **private** device working
+The Android posts are grounded in the private `fuxi-stealth` code and a **private** device working
 directory used only as ground truth. The following are **never** quoted or reproduced in posts or in
 this doc: keybox material, certificate serials, revocation-list files, full Wallet capture logs, and
 any personal identifiers. Only public mechanism names and the already-public log-line *structure*

@@ -1,0 +1,157 @@
+{
+  "en/post-training-is-a-data-problem.md": [
+    {
+      "before": "## The Generation Engines",
+      "after": "## Four engines for generating post-training data",
+      "anchor": "the-generation-engines"
+    },
+    {
+      "before": "## The Yield Flywheel",
+      "after": "## How verification yield affects data cost",
+      "anchor": "the-yield-flywheel"
+    }
+  ],
+  "zh/post-training-is-a-data-problem.md": [
+    {
+      "before": "## 架构重组：四台数据引擎的咬合",
+      "after": "## 四种后训练数据生成引擎",
+      "anchor": "架构重组四台数据引擎的咬合"
+    },
+    {
+      "before": "## 原理推演：飞轮效应的物理方程",
+      "after": "## 验证通过率与数据成本的关系",
+      "anchor": "原理推演飞轮效应的物理方程"
+    },
+    {
+      "before": "## 硬核落地：把工程预算砸向验证器",
+      "after": "## 验证器的工程投入与适用边界",
+      "anchor": "硬核落地把工程预算砸向验证器"
+    }
+  ],
+  "en/a-control-plane-for-renting-gpus.md": [
+    {
+      "before": "## The Ephemeral Hardware Swamp",
+      "after": "## Why rented GPU jobs need persistent identities",
+      "anchor": "the-ephemeral-hardware-swamp"
+    },
+    {
+      "before": "## Decoupling Planning from Execution",
+      "after": "## Separate experiment planning from remote execution",
+      "anchor": "decoupling-planning-from-execution"
+    },
+    {
+      "before": "## Concrete Immutability",
+      "after": "## Templates, bundles and collected artifacts",
+      "anchor": "concrete-immutability"
+    }
+  ],
+  "zh/a-control-plane-for-renting-gpus.md": [
+    {
+      "before": "## 瓶颈剖析：没有身份的副作用",
+      "after": "## 临时 GPU 作业为什么需要稳定身份",
+      "anchor": "瓶颈剖析没有身份的副作用"
+    },
+    {
+      "before": "## 架构重组：剥离规划与执行",
+      "after": "## 分离实验规划与远程执行",
+      "anchor": "架构重组剥离规划与执行"
+    },
+    {
+      "before": "## 硬核落地：消除隐藏分支的模板化执行",
+      "after": "## 模板、执行包与可回收产物",
+      "anchor": "硬核落地消除隐藏分支的模板化执行"
+    }
+  ],
+  "en/how-qwen3-tts-makes-a-frame.md": [
+    {
+      "before": "## A frame is a stack, not a token",
+      "after": "## RVQ codebooks within one audio frame",
+      "anchor": "a-frame-is-a-stack-not-a-token"
+    },
+    {
+      "before": "## The seam that matters: talker vs subcode",
+      "after": "## Separating Talker, Subcode and decoder graphs",
+      "anchor": "the-seam-that-matters-talker-vs-subcode"
+    }
+  ],
+  "zh/how-qwen3-tts-makes-a-frame.md": [
+    {
+      "before": "## 1. 症结所在：多码本 RVQ 带来的计算冗余",
+      "after": "## 1. RVQ 多码本与单帧生成",
+      "anchor": "1-症结所在多码本-rvq-带来的计算冗余"
+    },
+    {
+      "before": "## 2. 代码级图分离：面向计算形状的解耦",
+      "after": "## 2. Talker、Subcode 与解码器的图分离",
+      "anchor": "2-代码级图分离面向计算形状的解耦"
+    },
+    {
+      "before": "## 3. 流式解码挑战：首音延迟（TTFT）与左侧上下文的博弈",
+      "after": "## 3. 首音延迟、分块大小与左侧上下文",
+      "anchor": "3-流式解码挑战首音延迟ttft与左侧上下文的博弈"
+    },
+    {
+      "before": "## 4. 落地：C++ 接管调度大权",
+      "after": "## 4. C++ 运行时调度",
+      "anchor": "4-落地c-接管调度大权"
+    }
+  ],
+  "en/what-are-you-rewarding.md": [
+    {
+      "before": "## How I close the gap",
+      "after": "## Held-out checks for reward overoptimization",
+      "anchor": "how-i-close-the-gap"
+    }
+  ],
+  "zh/what-are-you-rewarding.md": [
+    {
+      "before": "## 两种奖励与物理隔离",
+      "after": "## 程序验证器与模型评分的分工",
+      "anchor": "两种奖励与物理隔离"
+    },
+    {
+      "before": "## 奖励崩溃的缩放律",
+      "after": "## 奖励过度优化：代理分数与真实质量",
+      "anchor": "奖励崩溃的缩放律"
+    },
+    {
+      "before": "## 缝隙的闭环策略",
+      "after": "## 使用留出检查评估奖励过度优化",
+      "anchor": "缝隙的闭环策略"
+    }
+  ],
+  "en/dpo-when-you-cant-afford-rlhf.md": [
+    {
+      "before": "## What my gradient is doing",
+      "after": "## Why chosen likelihood can fall during DPO",
+      "anchor": "what-my-gradient-is-doing"
+    },
+    {
+      "before": "## The OOC trick I use",
+      "after": "## Filtering character data for consistency",
+      "anchor": "the-ooc-trick-i-use"
+    }
+  ],
+  "zh/dpo-when-you-cant-afford-rlhf.md": [
+    {
+      "before": "## 数学折叠：隐式奖励的推导",
+      "after": "## DPO 隐式奖励的推导",
+      "anchor": "数学折叠隐式奖励的推导"
+    },
+    {
+      "before": "## 梯度欺骗：绝对似然下沉",
+      "after": "## 为什么 chosen 的绝对似然可能下降",
+      "anchor": "梯度欺骗绝对似然下沉"
+    },
+    {
+      "before": "## 变量控制与飞轮构造",
+      "after": "## 角色数据的一致性过滤",
+      "anchor": "变量控制与飞轮构造"
+    },
+    {
+      "before": "## 异构部署：S-LoRA 的并发解法",
+      "after": "## 使用 S-LoRA 服务多个角色",
+      "anchor": "异构部署s-lora-的并发解法"
+    }
+  ]
+}

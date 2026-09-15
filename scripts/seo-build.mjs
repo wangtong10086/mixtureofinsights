@@ -8,6 +8,7 @@ for(const file of walk('dist').filter(f=>f.endsWith('/index.html')||f.endsWith('
  const path='/'+file.replaceAll('\\','/').replace(/^dist\//,'').replace(/index.html$/,'');
  const html=readFileSync(file,'utf8');
  manifest.pages[site+path]=createHash('sha256').update(html).digest('hex');
+ if(path!=='/') redirects.push(`${path.slice(0,-1)} ${path} 301`);
  if(!path.startsWith('/zh/')){const old='/en'+(path==='/'?'':path.slice(0,-1));redirects.push(`${old} ${path} 301`,`${old}/ ${path} 301`);}
 }
 // Explicit legacy URLs only; unknown /en/ URLs remain real 404s.

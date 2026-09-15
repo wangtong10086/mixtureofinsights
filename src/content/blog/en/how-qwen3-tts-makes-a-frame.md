@@ -1,16 +1,19 @@
 ---
-title: "How Qwen3-TTS makes a frame of sound"
+title: "Qwen3-TTS on OpenVINO: Talker, Subcode and streaming decode"
 description: "Splitting Qwen3-TTS into Talker, Subcode, and streaming Decoder graphs in OpenVINO, with separate chunk sizes for the first audio and steady output."
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 2
 series: "openvino-tts"
 reading: "14 min read"
 tags: ["llm", "tts", "openvino", "codec", "architecture"]
 ---
 
-Qwen3-TTS generates audio through a 12 Hz inference loop. Its stages have different compute and memory requirements, so I exported them as separate OpenVINO graphs. This post follows a frame through Talker, Subcode, and the streaming Decoder.
+This export separates the long-context Talker, within-frame Subcode prediction and chunked waveform decoder. It gives the first audio chunk a smaller decoding window than steady output. Read the complexity discussion as a model of these different workloads, not a benchmark: one cached decoding step, total sequence work and memory capacity are different quantities.
 
-## A frame is a stack, not a token
+<span id="a-frame-is-a-stack-not-a-token" aria-hidden="true"></span>
+
+## RVQ codebooks within one audio frame
 
 At a 12 Hz cadence, the model emits an audio frame. This frame is not a scalar token. It is a multi-codebook codec frame: a vertical stack of discrete codebook tokens that collectively represent a time-slice of acoustic waveform. A downstream vocoder/codec translates this stream into raw PCM audio.
 
@@ -22,7 +25,9 @@ $$
 
 The first codebook ($r_1 = x$) captures the coarse structure. The subsequent codebooks refine the error. Reconstruction is the sum $\hat{x} = \sum_{i} q_i$. With $Q$ codebooks of $V$ entries, a frame holds $Q \log_2 V$ bits. This rigid ordering dictates the compute distribution: I spend heavy autoregressive machinery on the primary first codebook, and a cheap, cached greedy loop on the remaining refinements. The coarse-then-fine token modeling was heavily validated by [AudioLM (Borsos et al., 2022)](https://arxiv.org/abs/2209.03143), confirming that the first token is load-bearing.
 
-## The seam that matters: talker vs subcode
+<span id="the-seam-that-matters-talker-vs-subcode" aria-hidden="true"></span>
+
+## Separating Talker, Subcode and decoder graphs
 
 I split generation into three stages to separate their compute requirements.
 
@@ -37,7 +42,7 @@ I split generation into three stages to separate their compute requirements.
   1st Codebook + Hidden State   Rest of the codebooks               PCM Waveform
 ```
 
-**The talker graph** executes long-context autoregressive attention over the entire sequence history to produce the first codebook and a hidden state. This is the $O(n^2)$ component. At frame $n$, it attends over $n$ prior positions. The total cost is $O(n^2 d)$. This graph intrinsically requires a KV cache to collapse the recompute to $O(n)$. I exported this as the seed graph in [`qwen3_tts_ov/native_paged_kv.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/native_paged_kv.py), leaving KV-cache parameters dynamic so the OpenVINO C++ backend can inject PagedAttention operations via AST rewrites.
+**The talker graph** executes long-context autoregressive attention over the entire sequence history to produce the first codebook and a hidden state. This is the $O(n^2)$ component. At frame $n$, it attends over $n$ prior positions. The total cost is $O(n^2 d)$. This graph intrinsically requires a KV cache to collapse the recompute to $O(n)$. I exported this as the seed graph in [`qwen3_tts_ov/exporter.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/7ad76aad56301074ec689aac1d988d6461462916/qwen3_tts_ov/exporter.py), leaving KV-cache parameters dynamic so the OpenVINO C++ backend can inject PagedAttention operations via AST rewrites.
 
 ```python
 # Exporting the grouped-query attention seed
@@ -52,7 +57,7 @@ input_shapes = [
 ov_model = ov.convert_model(wrapper.eval(), example_input=example_inputs, input=input_shapes)
 ```
 
-**The `subcode_greedy_cached` graph** fills the remaining codebooks $2 \dots Q$. Conditioned strictly on the talker's hidden state, it executes a greedy loop. There is no historical attention. Its cost is $O(Q \cdot d)$, strictly constant in $n$. In the exporter, I wired a loop over `int(config.num_code_groups) - 1` heads. Splitting this out keeps the $O(n)$ KV-cache work out of a loop that is $O(1)$ in temporal context.
+**The `subcode_greedy_cached` graph** fills the remaining codebooks $2 \dots Q$. Conditioned strictly on the talker's hidden state, it executes a greedy loop. It does not attend over previous audio frames, but SubcodeGreedyCachedWrapper does maintain a bounded cache within the current frame. Its cost is $O(Q \cdot d)$, strictly constant in $n$. In the exporter, I wired a loop over `int(config.num_code_groups) - 1` heads. Splitting this out keeps the $O(n)$ KV-cache work out of a loop that is $O(1)$ in temporal context.
 
 **The streaming decoder** is a convolutional/transformer hybrid that ingests chunks of completed frames to emit PCM audio. It maintains a bounded left-context window, ignoring distant history.
 
@@ -66,4 +71,6 @@ The decoder exports embed their chunking schedule directly into their filenames:
 path = out_dir / f"speech_decoder_stream_c{left_context_frames}_t{chunk_frames}.xml"
 ```
 
-A profile like `c25_t12` enforces 25 frames of left-context and emits chunks of 12 tokens. The first chunk uses a different graph: `c0_t8`. I export a distinct, smaller graph with zero left-context and an 8-token width to minimize the time-to-first-audio (TTFA). The production build configures these precisely in [`qwen3_tts_ov/build_fastest.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/main/qwen3_tts_ov/build_fastest.py).
+A profile like `c25_t12` enforces 25 frames of left-context and emits chunks of 12 tokens. The first chunk uses a different graph: `c0_t8`. I export a distinct, smaller graph with zero left-context and an 8-token width to minimize the time-to-first-audio (TTFA). The production build configures these precisely in [`qwen3_tts_ov/build_fastest.py`](https://github.com/wangtong10086/qwen3-tts-openvino/blob/7ad76aad56301074ec689aac1d988d6461462916/qwen3_tts_ov/build_fastest.py).
+
+Once these graphs can run independently, [Paged-KV allocation and continuous batching](/blog/paged-kv-batching-without-vllm/) determine how concurrent streams share them.

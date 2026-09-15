@@ -93,3 +93,11 @@ python3 scripts/gen-covers.py     # writes public/og/<slug>.jpg
 © Wang Tong · content licensed for reading; ask before reuse.
 [GitHub](https://github.com/wangtong10086) ·
 [LinkedIn](https://www.linkedin.com/in/%E9%80%9A-%E7%8E%8B-190ba329a/)
+## SEO/GEO maintenance (2026-09-15)
+
+- Build generates `llms.txt`, explicit redirects, sitemap modification dates and `seo-manifest.json` from the same content collection. Do not hand-edit generated files.
+- Use `updatedAt` only for a substantive revision on a known date. Publication dates and stable URLs remain unchanged. Titles/descriptions are shared by visible pages and metadata.
+- Run `npm run check`, `npm run build`, then `npm test` (Node 22). The original content baseline protects code, math, identity and sources; reviewed migrations in `scripts/fixtures/seo-*-migrations.json` narrowly document intentional title, source and section changes.
+- The deploy workflow snapshots live page hashes, deploys, waits for the matching manifest, and submits only changed/added/removed URLs to IndexNow. A notification failure does not roll back an already successful deployment. Inspect the saved before/after manifests and receipt; retry only after verifying the deployed manifest.
+- Cloudflare zone rule `3a7f7befd6e2408dbc13afbf336ba675` in ruleset `103d86ca7fcc42f38d83dbf648a73254` permanently redirects only the blog `www` host to the apex, preserving path/query. Disable that rule to undo it; other subdomains are unaffected.
+- Review source limitations in `docs/SEO_CONTENT_REVIEW.md` and question mapping in `docs/SEO_QUERY_MAP.json`. Search dashboards and their non-public exports stay outside this public repository.

@@ -1,14 +1,15 @@
 ---
-title: "Debugging a PayPal startup crash: a device-number gap and an App Zygote errno"
+title: "PayPal startup crash: filesystem device numbers and App Zygote errno"
 description: "Tracing a PayPal startup failure to Magisk's filesystem device-number allocation and an App Zygote SELinux error, then testing the two changes and their limits."
 date: 2026-09-14
+updatedAt: 2026-09-15
 order: 6
 series: "android-hardening"
 reading: "22 min"
 tags: ["android", "debugging", "magisk", "selinux", "ebpf", "kernel"]
 ---
 
-PayPal used to work on this phone. Magisk's Root hiding and an application-list hiding tool had been enough. Later, opening the app caused it to exit.
+For PayPal 10.12.0 on the recorded Xiaomi 13 build, the investigation isolated a filesystem device-number signal and an App Zygote errno distinction. The evidence proceeds from captured inputs to an offline one-field test, independent process-context reproduction and combined device acceptance. Acceptance covered authenticated entry and a stable page; payments, transfers and backend trust were not tested.
 
 Changing modules, scopes, or versions could alter the result without explaining it. The investigation narrowed the question to what this PayPal build reads and which return value makes it reject the environment.
 
@@ -257,3 +258,5 @@ The [attachment README](/notes/paypal-root-crash-2026-09-14/README.md), [sanitiz
 The public summary selects technical fields from local records, omitting device identifiers, personal paths, and account UI. It is neither a raw-log archive nor independent third-party reproduction. Original images, captures, and recovery materials remain local. The repository's `docs/SOURCES.md` records code and evidence anchors for future revisions.
 
 Both changes remain maintenance work: after an update, check whether these differences still exist before applying the patches again.
+
+This process-specific result extends the earlier [UID, SELinux and namespace audit](/blog/04-auditing-from-the-apps-eyes/).

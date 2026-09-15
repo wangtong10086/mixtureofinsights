@@ -1,14 +1,15 @@
 ---
-title: "Cold-start, then climb"
+title: "SFT cold-start before GRPO for constrained planning"
 description: "An SFT cold-start followed by GRPO for constrained planning: seed collection, configuration, group-relative advantages, and failed sampling groups."
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 2
 series: "post-training"
 reading: "13 min read"
 tags: ["llm", "rl", "grpo", "sft", "reasoning"]
 ---
 
-On long-horizon planning tasks with hard constraints, my base model rarely sampled a good trajectory. RL then had little useful behavior to reinforce: progress was slow, variance was high, and the reward curves looked like noise. I use a small SFT cold-start to improve that starting point before the main RL stage.
+This workflow collects verified planning trajectories, fine-tunes an SFT seed, then runs GRPO with group-relative rewards. It is useful when the starting policy rarely samples a valid plan. Track the fraction of groups with different rewards: additional rollout spending is unproductive when every response receives the same task score.
 
 ## Why I cold-start before RL: the gradient dictates it
 
@@ -18,9 +19,9 @@ $$
 \nabla_\theta J(\theta) \;=\; \mathbb{E}_{y \sim \pi_\theta}\big[\, A(y)\, \nabla_\theta \log \pi_\theta(y \mid x) \,\big],
 $$
 
-an expectation over the policy's own samples. I read it as a search budget: a behavior contributes gradient only in proportion to how often the policy currently produces it. If a good trajectory has probability $10^{-4}$ under the base model and I sample 8 rollouts per prompt, I see one roughly every 1,250 prompts. The other 9,999 gradient contributions are noise pushing in arbitrary directions. Probability ≈ 0 means gradient ≈ 0, no matter how large the reward I attached to it.
+an expectation over the policy's own samples. I read it as a search budget: a behavior contributes gradient only in proportion to how often the policy currently produces it. If a good trajectory has probability $10^{-4}$ under the base model and I sample 8 rollouts per prompt, I see one roughly every 1,250 prompts. The other 9,999 samples in this expectation are not successful trajectories; their gradient contributions cannot be classified as arbitrary noise from the success rate alone. Probability ≈ 0 means gradient ≈ 0, no matter how large the reward I attached to it.
 
-With sparse 0/1 rewards, the variance of the gradient estimate scales like $p(1-p)$ over my sample budget — worst exactly in the regime where success is rare and I need signal most. A small, clean SFT cold-start fixes my starting point. I'm moving $p(\text{good trajectory})$ from $10^{-4}$ to $10^{-1}$. At that point, a group of 8 samples contains a usable contrast almost every prompt. The cold-start buys sample efficiency, not capability.
+With sparse 0/1 rewards, the Bernoulli outcome variance is $p(1-p)$; the variance of its sample mean also depends on the sample budget. That expression is largest at a success probability of one half; rare success instead creates a large relative estimation error. Full policy-gradient variance also depends on advantages and score-function gradients. A small, clean SFT cold-start fixes my starting point. I'm moving $p(\text{good trajectory})$ from $10^{-4}$ to $10^{-1}$. At that point, a group of 8 samples contains a usable contrast almost every prompt. The cold-start buys sample efficiency, not capability.
 
 ## My four-step recipe
 
@@ -34,7 +35,7 @@ This mirrors the frontier-scale recipe detailed in [DeepSeek-R1 (DeepSeek-AI, 20
 
 ## How the two stages map to my code
 
-Both stages are the same config object — `SwiftConfig` in [`orbit/training/config.py`](https://github.com/wangtong10086/mixtureofinsights/blob/main/orbit/training/config.py) — with `train_type` flipped. The cold-start is `train_type="sft"`; the climb is `train_type="rlhf", rlhf_type="grpo"`. `SwiftConfig.to_yaml_dict()` emits the GRPO-specific knobs:
+Both stages are the same config object — `SwiftConfig` in [`orbit/training/config.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/training/config.py) — with `train_type` flipped. The cold-start is `train_type="sft"`; the climb is `train_type="rlhf", rlhf_type="grpo"`. `SwiftConfig.to_yaml_dict()` emits the GRPO-specific knobs:
 
 ```python
 if self.train_type == "rlhf":
@@ -96,3 +97,5 @@ I know before I tune that the $\operatorname{std}$ in the denominator is a bias 
 **Group size is a knob.** $K$ controls the variance of $\operatorname{mean}(r)$ as a baseline estimate. Too small (2–4), the advantage is noisy; too large, I burn rollout budget. At pass rate $p=0.05$ and $K=8$, the chance a group is live is ~34%. At $K=16$, it's ~56%. My cold-start's job is quantified: I raise $p$ until a modest $K$ keeps most groups alive.
 
 By running this `SFT cold-start → GRPO` pipeline aligned with a constraint-aware reward, I lifted complex-constraint satisfaction ~12% on my internal benchmark and cut hallucinated plans without requiring a massive human-labeled dataset. The SFT seed made good trajectories available for the main GRPO stage to reinforce.
+
+Seed selection depends on [the data-generation and verification pipeline](/blog/post-training-is-a-data-problem/); reward design is developed in the next article.

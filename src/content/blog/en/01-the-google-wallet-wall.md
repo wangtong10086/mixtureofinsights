@@ -1,14 +1,15 @@
 ---
-title: "The Google Wallet Wall"
+title: "Google Wallet card-add failure despite Play Integrity STRONG"
 description: "Investigating a Google Wallet card-add failure on an unlocked Xiaomi 13 that passed Play Integrity STRONG, from TapAndPay logs to key attestation."
 date: 2026-06-09
+updatedAt: 2026-09-15
 order: 1
 series: "android-hardening"
 reading: "11 min read"
 tags: ["android", "attestation", "google-wallet", "tee"]
 ---
 
-My Xiaomi 13 ran LineageOS with an unlocked bootloader and Magisk root. With the hiding stack installed, it passed Play Integrity BASIC + DEVICE + STRONG, but Google Wallet still refused to add a card. I followed the attestation chain to find where it was failing.
+A Play Integrity STRONG result did not make card tokenization succeed in this Xiaomi 13 investigation. The TapAndPay log instead pointed to storage-key attestation. The public Android documentation explains the certificate fields; the precise Google payment-backend rejection rule cannot be established from client logs alone.
 
 Adding any card failed at tokenization with a generic *"doesn't meet security standards"*. Since [Play Integrity (Google, 2024)](https://developer.android.com/google/play/integrity/verdicts) passed STRONG, integrity wasn't the gate.
 
@@ -41,3 +42,5 @@ During the GMS (uid 10074) attestation, `keystore2` logged no local error. Trick
 Google's backend enforces the physical reality of the silicon state. Userspace can lie to apps, but it cannot sign as the TEE, and it cannot make the TEE report `deviceLocked: true` when the bootloader is unlocked. The verified-boot state is baked into the hardware.
 
 Repairing the TEE on an unlocked device only makes the TEE attest honestly. I verified this via the Xiaomi-vendor `KmInstallKeybox` binary repair runbook. The realistic Play Integrity ceiling is BASIC. Wallet tap-to-pay remains explicitly out of scope for a TEE repair on an unlocked device. The repaired TEE still reports an unlocked bootloader.
+
+The broader [Android observation-layer overview](/blog/05-what-you-can-and-cant-hide/) separates local detection surfaces from hardware attestation.

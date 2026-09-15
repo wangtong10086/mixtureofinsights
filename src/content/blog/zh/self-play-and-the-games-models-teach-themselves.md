@@ -1,20 +1,21 @@
 ---
-title: "自我博弈：让模型从游戏里捞数据"
+title: "OpenSpiel 训练数据：MCTS、CFR 与轨迹筛选"
 description: "GAME 管线用 OpenSpiel、MCTS 和 CFR/MCCFR 生成对局，按终局结果筛选轨迹，再转成 SFT 对话数据。"
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 5
 series: "post-training"
 reading: "13 分钟"
 tags: ["llm", "self-play", "game-playing", "openspiel", "rejection-sampling"]
 ---
 
-构建后训练数据引擎时，我遇到的问题不只是标注成本。很多复杂推理任务，人类根本无法写出最优示范。对于不完美信息博弈，要求标注者在极其庞大的状态空间中写出精确的策略转移方程，不仅低效而且极易出错。
+这条 GAME 采集路径由 MCTS 或 CFR/MCCFR 提供动作，OpenSpiel 提供终局收益，LLM 随后学习状态与动作组成的对话。这里采集的是求解器生成的数据，需要与“LLM 在线自我对弈并更新”的闭环区分。搜索预算与结果筛选会影响数据质量；赢下一局或增加搜索预算，都不能证明每一步最优。
 
 我选择用游戏规则提供监督信号：由 MCTS、CFR 或 MCCFR 生成对局，再根据胜负筛选训练轨迹。在 Orbit 项目中，`GAME` 环境的底层架构正是围绕这一思路，将 [OpenSpiel](https://github.com/google-deepmind/open_spiel) 的搜索树转化为大模型的训练流。
 
 ## OpenSpiel 策略生成矩阵
 
-GAME 引擎使用 `pyspiel` 的求解器生成对局，不让多个 LLM 直接交互。在 [`orbit/data/game_trajectory_generators.py`](https://github.com/wangtong10086/orbit/blob/main/orbit/data/game_trajectory_generators.py) 中，我定义了一张游戏注册表，并为游戏配置两类策略生成方式：
+GAME 引擎使用 `pyspiel` 的求解器生成对局，不让多个 LLM 直接交互。在 [`orbit/data/game_trajectory_generators.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/data/game_trajectory_generators.py) 中，我定义了一张游戏注册表，并为游戏配置两类策略生成方式：
 
 ```python
 SUPPORTED_GAMES = (
@@ -31,14 +32,14 @@ SUPPORTED_GAMES = (
 "leduc_poker": GameTrajectoryGeneratorSpec(name="leduc_poker_cfr", family="cfr", ...),
 ```
 
-*   对于完美信息博弈（如 `othello`），通过 [`orbit/data/game_generators/search_generators.py`](https://github.com/wangtong10086/orbit/blob/main/orbit/data/game_generators/search_generators.py) 中的 `SearchTrajectoryGenerator` 注入 **MCTS** 进行深层蒙特卡洛树搜索。
-*   对于不完美信息博弈（如 `leduc_poker`），则在 [`orbit/data/game_generators/policy_generators.py`](https://github.com/wangtong10086/orbit/blob/main/orbit/data/game_generators/policy_generators.py) 中利用 **CFR/MCCFR** 算法提前解出纳什均衡的策略快照（参考 [*Counterfactual Regret Minimization* (Zinkevich et al., 2007)](https://papers.nips.cc/paper/2007/hash/08d98638c6fcd194a4b1e6992063e944-Abstract.html)）。
+*   对于完美信息博弈（如 `othello`），通过 [`orbit/data/game_generators/search_generators.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/data/game_generators/search_generators.py) 中的 `SearchTrajectoryGenerator` 注入 **MCTS** 进行深层蒙特卡洛树搜索。
+*   对于不完美信息博弈（如 `leduc_poker`），则在 [`orbit/data/game_generators/policy_generators.py`](https://github.com/wangtong10086/orbit/blob/5bf86f0aa77a38bbaa7b196de513e9b2afe455a4/orbit/data/game_generators/policy_generators.py) 中利用 **CFR/MCCFR** 算法提前解出纳什均衡的策略快照（参考 [*Counterfactual Regret Minimization* (Zinkevich et al., 2007)](https://papers.nips.cc/paper/2007/hash/08d98638c6fcd194a4b1e6992063e944-Abstract.html)）。
 
 计算量大的决策由树搜索或遗憾最小化求解器完成，LLM 再通过下一 token 预测学习这些近乎最优的轨迹。
 
 ## 零成本验证器与拒绝采样
 
-游戏规则提供了一个无需额外标注、不可欺骗的验证器。每局结束时都有确定的终局状态。在 `search_generators.py` 的处理流水线中，仅有真实获胜的轨迹会被落盘：
+游戏规则提供了一个无需人工标注的终局评分器。每局结束时都有确定的终局状态。在 `search_generators.py` 的处理流水线中，归一化终局分数达到阈值的轨迹会被保留：
 
 ```python
 returns = state.returns()
@@ -47,7 +48,9 @@ if score < 0.5:
     return None
 ```
 
-这里的 `returns()` 是由程序逻辑硬编码的客观反馈，它免疫任何 reward hacking 攻击。以此为基础，构建了基于胜负过滤的自我对弈闭环：
+这段过滤还会保留 score 等于 0.5（收益为零）的记录，因此图中的“胜者”是简写，不是严格的仅胜局规则；具体含义取决于游戏的收益刻度。
+
+这里的 `returns()` 是由程序逻辑硬编码的客观反馈，它减少了依赖模型主观打分的误差，但不能据此证明整个环境和采集流程免疫 reward hacking。以此为基础，构建了基于胜负过滤的自我对弈闭环：
 
 ```text
 [ 采样器 (MCTS/CFR/旧策略) ]
@@ -63,7 +66,7 @@ if score < 0.5:
 [ 迭代策略池 ] <------ 训练更强的 LLM <-------- [ SFT 监督微调 ]
 ```
 
-这种机制本质上是在轨迹维度进行**拒绝采样（Rejection Sampling）**。为了达成样本数量目标，我通过参数 `attempt_multiplier` 在 CLI 入口开启超采样模式。循环提供随机数种子，生成并筛选对局，直到积攒到足量胜局：
+这种机制本质上是在轨迹维度进行**拒绝采样（Rejection Sampling）**。为了达成样本数量目标，我通过参数 `attempt_multiplier` 在 CLI 入口开启超采样模式。循环提供随机数种子，生成并筛选对局，尝试积攒足量达到阈值的轨迹；总尝试次数仍受预算限制：
 
 ```python
 attempts = 0
@@ -78,7 +81,7 @@ while count_jsonl_records(output) < sample_count and attempts < max_attempts:
         append_jsonl_record(output, record)
 ```
 
-轨迹级采样仍有信用分配（Credit Assignment）问题。一次终局的胜利由数十步决策共同决定，稀疏延迟的奖励会将劣势决策裹挟进训练集。为了切断这种噪声，我不让早期较弱的 LLM 介入对局生成，而是全部由 MCTS 和 CFR 这类强算力采样器主导。当搜索预算拉满时（如 `othello` 配置的 `{"sim": 300, "roll": 5}`），单步质量已逼近理论上限，使混入数据集的冗余操作尽可能少。
+轨迹级采样仍有信用分配（Credit Assignment）问题。一次终局的胜利由数十步决策共同决定，稀疏延迟的奖励会将劣势决策裹挟进训练集。为了切断这种噪声，我不让早期较弱的 LLM 介入对局生成，而是全部由 MCTS 和 CFR 这类强算力采样器主导。当搜索预算拉满时（如 `othello` 配置的 `{"sim": 300, "roll": 5}`），这提供了可控的采样配置，但是否接近最优、是否减少了低质量动作，仍需逐个游戏评测。
 
 ## 平稳性破裂与种群防御
 
@@ -90,7 +93,7 @@ Orbit 在底层长跑架构中通过 `AFFINE_GAME_LONGRUN_TEACHER_GATE_INTERVAL`
 
 ## 信号收敛与架构归宿
 
-过滤后的胜局数据将直接灌入 SFT 管线。引擎的 `make_user_prompt` 方法将棋盘状态与合法动作序列化，将 MCTS 或 CFR 的决策转化为标准对话：
+通过阈值过滤的数据将直接灌入 SFT 管线。引擎的 `make_user_prompt` 方法将棋盘状态与合法动作序列化，将 MCTS 或 CFR 的决策转化为标准对话：
 
 ```python
 messages.append({"role": "user", "content": make_user_prompt(state, current_player, legal, game_name)})
@@ -100,3 +103,5 @@ messages.append({"role": "assistant", "content": str(action)})
 由于高质量的博弈策略数据极其稀缺，这批数据在 `merge_datasets` 环节会被赋予 3 倍的采样权重。LLM 在这个过程中不执行树搜索，只学习求解器给出的状态与动作。模型在预训练阶段已经具备逻辑推理能力，自我博弈和拒绝采样用于激发这些能力。
 
 后训练最重要的工作，是持续生成和校验高质量数据。
+
+这些记录最终接入与其他 ORBIT 环境相同的[生成、筛选与 SFT 数据管线](/zh/blog/post-training-is-a-data-problem/)。

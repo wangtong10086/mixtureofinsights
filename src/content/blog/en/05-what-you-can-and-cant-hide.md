@@ -1,14 +1,15 @@
 ---
-title: "What you can and can't hide"
+title: "Rooted Android detection: userspace signals and attestation limits"
 description: "A reference table of custom-ROM detection channels and the changes used for each, followed by the remaining isolated /proc and hardware-attestation limits."
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 5
 series: "android-hardening"
 reading: "10 min read"
 tags: ["android", "detection", "synthesis", "rasp"]
 ---
 
-After weeks of work on these detection channels, I collected the probes and corresponding changes in one table. Each change has to act at the layer where RASP can observe the information.
+This reference groups the original device investigation by observation layer: packages, features, permissions, properties, mounts, logs and attestation. Each table entry describes a local change or a remaining limit in that setup. It is not a guarantee about every app, ROM, hardware root of trust or server-side decision.
 
 | Channel | Probe | Countermeasure | Layer |
 |---|---|---|---|
@@ -45,3 +46,5 @@ Two limits remained beyond these userspace changes:
 First, Shamiko's mount-namespace isolation gives the app a clean view, stripping Magisk bind-mounts. But doing so restores the genuine `/proc/self/cmdline` and `/proc/version`. Since my Zygisk module didn't inject into the isolated app, there was no code present to rewrite those files.
 
 Second, the [Android Key Attestation (Google, 2024)](https://developer.android.com/privacy-and-security/security-key-attestation) checks the hardware-reported boot state. The TEE records the boot state natively and signs it via a key userspace cannot read. A forged chain can satisfy local checks, but server-side validation against the hardware root fails instantly. A userspace module cannot produce a signature with the TEE's private key.
+
+For the attestation boundary, read the [Wallet card-add investigation](/blog/01-the-google-wallet-wall/); for test context, use the [app-context audit](/blog/04-auditing-from-the-apps-eyes/).

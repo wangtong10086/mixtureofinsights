@@ -1,14 +1,15 @@
 ---
-title: "The logcat leak"
+title: "Android READ_LOGS: auditing permission and SELinux context"
 description: "Fifteen third-party apps held READ_LOGS on this LineageOS build. Revoking access also required checking the runtime request path and testing in the app's SELinux domain."
 date: 2026-06-10
+updatedAt: 2026-09-15
 order: 3
 series: "android-hardening"
 reading: "10 min read"
 tags: ["android", "logcat", "read_logs", "selinux"]
 ---
 
-I hid the packages and features, but then I audited permissions and noticed fifteen third-party apps holding `READ_LOGS`. They were reading the global log, where Magisk daemon stderr and LSPosed module traces sat in plain text.
+The useful result of this log-access audit is the test boundary: revoking READ_LOGS must be checked alongside runtime log requests and the caller SELinux domain. The fifteen grants are an observation from one LineageOS installation. They should not be generalized to every ROM or treated as evidence that each app actually read every log entry.
 
 Logcat is system-wide. A normal app can't read another app's memory, but an app holding `READ_LOGS` reads the system log buffers in plain text. I discovered that on this LineageOS build, [`READ_LOGS`](https://developer.android.com/reference/android/Manifest.permission#READ_LOGS) was auto-granted at install. Its protection level is `signature|privileged|development`. The `development` flag allows a shell to grant it, and this ROM was silently auto-granting it upon manifest declaration.
 
@@ -47,3 +48,5 @@ My first check was misleading: `su 10253 -c 'logcat'` returned 329 lines, even a
 su 10253 -z u:r:untrusted_app:s0 -c 'logcat -d -t 200' | wc -l   ->   0   (denied)
 ```
 Logd enforces access via SELinux and caller UID. The `untrusted_app` domain is what logd actually gates. To measure the app's access limits, the test has to use its actual SELinux domain.
+
+The separate [app-context audit](/blog/04-auditing-from-the-apps-eyes/) explains why changing UID alone is insufficient.
