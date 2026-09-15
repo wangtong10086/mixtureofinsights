@@ -5,7 +5,7 @@ const zh = lang === 'zh';
 ---
 <aside class="coffee-support" aria-label={zh ? '支持写作' : 'Support my writing'}>
   <p>{zh ? '如果这里的文章对你有帮助，欢迎请我喝杯咖啡。' : 'If you find these articles useful, you can support my writing with a coffee.'}</p>
-  <a href="https://coffee.mixtureofinsights.com/">
+  <a href={`https://coffee.mixtureofinsights.com/?lang=${lang}`}>
     <span aria-hidden="true">☕</span>
     {zh ? '请我喝杯咖啡' : 'Buy me a cup of coffee'} <span>· $1 USD</span>
   </a>
