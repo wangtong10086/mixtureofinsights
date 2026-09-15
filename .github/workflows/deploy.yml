@@ -24,6 +24,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Snapshot deployed pages before changes
+        run: node scripts/indexnow.mjs snapshot
+
       - run: npm run build
 
       - name: Deploy to Cloudflare Workers
@@ -32,3 +35,13 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy
+
+      - name: Notify changed URLs after deployment
+        run: node scripts/indexnow.mjs submit
+      - name: Save indexing notification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: indexnow-receipt
+          path: indexnow-result.json
+          if-no-files-found: ignore
