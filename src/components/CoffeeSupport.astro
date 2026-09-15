@@ -9,7 +9,6 @@ const zh = lang === 'zh';
     <span aria-hidden="true">☕</span>
     {zh ? '请我喝杯咖啡' : 'Buy me a cup of coffee'} <span>· $1 USD</span>
   </a>
-  <small>{zh ? '自愿支持，一次性付款，不自动续费。' : 'Optional, one-time support. No subscription.'}</small>
 </aside>
 <style>
   .coffee-support { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
@@ -17,5 +16,4 @@ const zh = lang === 'zh';
   a { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .65rem .9rem; border: 1px solid currentColor; border-radius: .4rem; font-weight: 600; text-decoration: none; }
   a:hover { text-decoration: underline; text-underline-offset: .2em; }
   a:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
-  small { display: block; margin-top: .65rem; }
 </style>
